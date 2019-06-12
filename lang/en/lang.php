@@ -11,3 +11,5 @@
 // custom language strings for the plugin
 // $lang['fixme'] = 'FIXME';
 
+
+$lang['error sqlite plugin missing'] = 'The sqlite plugin is missing';
