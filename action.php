@@ -14,33 +14,81 @@ if (!defined('DOKU_INC')) {
 class action_plugin_acknowledge extends DokuWiki_Action_Plugin
 {
 
-    /**
-     * Registers a callback function for a given event
-     *
-     * @param Doku_Event_Handler $controller DokuWiki's event controller object
-     *
-     * @return void
-     */
+    /** @inheritDoc */
     public function register(Doku_Event_Handler $controller)
     {
-        $controller->register_hook('AJAX_CALL_UNKNOWN', 'FIXME', $this, 'handle_ajax_call_unknown');
-   
+        $controller->register_hook('COMMON_WIKIPAGE_SAVE', 'AFTER', $this, 'handlePageSave');
+        $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handleAjax');
     }
 
     /**
-     * [Custom event handler which performs action]
+     * Manage page meta data
      *
-     * Called for event:
+     * Store page last modified date
+     * Handle page deletions
+     * Remove assignments on page save, they get readded on rendering if needed
      *
-     * @param Doku_Event $event  event object by reference
-     * @param mixed      $param  [the parameters passed as fifth argument to register_hook() when this
-     *                           handler was registered]
-     *
-     * @return void
+     * @param Doku_Event $event
+     * @param $param
      */
-    public function handle_ajax_call_unknown(Doku_Event $event, $param)
+    public function handlePageSave(Doku_Event $event, $param)
     {
+        /** @var helper_plugin_acknowledge $helper */
+        $helper = plugin_load('helper', 'acknowledge');
+
+        if ($event->data['changeType'] === DOKU_CHANGE_TYPE_DELETE) {
+            $helper->removePage($event->data['id']);
+        } elseif ($event->data['changeType'] !== DOKU_CHANGE_TYPE_MINOR_EDIT) {
+            $helper->storePageDate($event->data['id'], $event->data['newRevision']);
+        }
+
+        $helper->clearAssignments($event->data['id']);
     }
 
+    /**
+     * @param Doku_Event $event
+     * @param $param
+     */
+    public function handleAjax(Doku_Event $event, $param)
+    {
+        if ($event->data === 'plugin_acknowledge_html') {
+            echo $this->html();
+            $event->stopPropagation();
+            $event->preventDefault();
+        }
+    }
+
+    /**
+     * Returns the acknowledgment form/confirmation
+     *
+     * @return string The HTML to display
+     */
+    protected function html()
+    {
+        global $INPUT;
+        global $USERINFO;
+        $id = $INPUT->str('id');
+        $user = $INPUT->server->str('REMOTE_USER');
+        if ($id === '' || $user === '') return '';
+
+        /** @var helper_plugin_acknowledge $helper */
+        $helper = plugin_load('helper', 'acknowledge');
+
+        $html = '';
+
+        $ack = $helper->hasUserAcknowledged($id, $user);
+        if ($ack) {
+
+            $html .= '<div>';
+            $html .= 'You acknowledged this page ' . sprintf('%f', $ack);
+            $html .= '</div>';
+        } elseif ($helper->isUserAssigned($id, $user, $USERINFO['grps'])) {
+            $html .= '<div>';
+            $html .= 'You need to acknowledge this';
+            $html .= '</div>';
+        }
+        
+        return $html;
+    }
 }
 

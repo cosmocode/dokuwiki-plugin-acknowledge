@@ -29,6 +29,37 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     }
 
     /**
+     * Delete a page
+     *
+     * Cascades to delete all assigned data, etc.
+     *
+     * @param string $page Page ID
+     */
+    public function removePage($page)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return;
+
+        $sql = "DELETE FROM pages WHERE page = ?";
+        $sqlite->query($sql, $page);
+    }
+
+    /**
+     * Update last modified date of page
+     *
+     * @param string $page Page ID
+     * @param int $lastmod timestamp of last non-minor change
+     */
+    public function storePageDate($page, $lastmod)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return;
+
+        $sql = "REPLACE INTO pages (page, lastmod) VALUES (?,?)";
+        $sqlite->query($sql, $page, $lastmod);
+    }
+
+    /**
      * @param string $page Page ID
      * @param string $assignees comma separated list of users and groups
      */
@@ -41,6 +72,67 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sqlite->query($sql, $page, $assignees);
     }
 
+    /**
+     * Clears assignements for a page
+     *
+     * @param string $page Page ID
+     */
+    public function clearAssignments($page)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return;
 
+        $sql = "DELETE FROM assignments WHERE page = ?";
+        $sqlite->query($sql, $page);
+    }
+
+
+    /**
+     * Is the given user one of the assignees for this page
+     *
+     * @param string $page Page ID
+     * @param string $user user name to check
+     * @param string[] $groups groups this user is in
+     * @return bool
+     */
+    public function isUserAssigned($page, $user, $groups)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+
+
+        $sql = "SELECT assignee FROM assignments WHERE page = ?";
+        $result = $sqlite->query($sql, $page);
+        $assignees = (string)$sqlite->res2single($result);
+        $sqlite->res_close($result);
+
+        return auth_isMember($assignees, $user, $groups);
+    }
+
+    /**
+     * Has the givenuser acknowledged the given page?
+     *
+     * @param string $page
+     * @param string $user
+     * @return bool|int timestamp of acknowledgement or fals
+     */
+    public function hasUserAcknowledged($page, $user)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+
+        $sql = "SELECT ack 
+                  FROM acks A, pages B
+                 WHERE A.page = B.page
+                   AND page = ?
+                   AND user = ?
+                   AND A.ack >= B.lastmod";
+
+        $result = $sqlite->query($sql, $page, $user);
+        $acktime = $sqlite->res2single($result);
+        $sqlite->res_close($result);
+
+        return $acktime ? (int)$acktime : false;
+    }
 }
 
