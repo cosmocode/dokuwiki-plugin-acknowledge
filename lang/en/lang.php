@@ -9,7 +9,9 @@
 // $lang['menu'] = 'Your menu entry';
 
 // custom language strings for the plugin
-// $lang['fixme'] = 'FIXME';
+$lang['ackRequired'] = 'You need to acknowledge this';
+$lang['ackText'] = 'I confirm that I have read and understood the contents of this page';
+$lang['ackGranted'] = 'You acknowledged this page on ';
 
 
 $lang['error sqlite plugin missing'] = 'The sqlite plugin is missing';

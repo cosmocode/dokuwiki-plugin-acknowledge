@@ -6,7 +6,7 @@
  * @author  Andreas Gohr, Anna Dabrowska <dokuwiki@cosmocode.de>
  */
 
-class syntax_plugin_acknowledge extends DokuWiki_Syntax_Plugin
+class syntax_plugin_acknowledge_assign extends DokuWiki_Syntax_Plugin
 {
     /** @inheritDoc */
     public function getType()
@@ -29,7 +29,7 @@ class syntax_plugin_acknowledge extends DokuWiki_Syntax_Plugin
     /** @inheritDoc */
     public function connectTo($mode)
     {
-        $this->Lexer->addSpecialPattern('~~ACK:.*?~~', $mode, 'plugin_acknowledge');
+        $this->Lexer->addSpecialPattern('~~ACK:.*?~~', $mode, 'plugin_acknowledge_assign');
     }
 
 
@@ -57,7 +57,7 @@ class syntax_plugin_acknowledge extends DokuWiki_Syntax_Plugin
         }
 
         // a canvas to render the output to
-        $renderer->doc .= '<div class="plugin-acknowledge">…</div>';
+        $renderer->doc .= '<div class="plugin-acknowledge-assign">…</div>';
         return true;
     }
 }

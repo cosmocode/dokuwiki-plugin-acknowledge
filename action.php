@@ -6,10 +6,7 @@
  * @author  Andreas Gohr, Anna Dabrowska <dokuwiki@cosmocode.de>
  */
 
-// must be run within Dokuwiki
-if (!defined('DOKU_INC')) {
-    die();
-}
+use dokuwiki\Form\Form;
 
 class action_plugin_acknowledge extends DokuWiki_Action_Plugin
 {
@@ -23,6 +20,8 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
 
     /**
      * Manage page meta data
+     *
+     * FIXME do we track ALL pages? or do we check for assignments?
      *
      * Store page last modified date
      * Handle page deletions
@@ -51,7 +50,7 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
      */
     public function handleAjax(Doku_Event $event, $param)
     {
-        if ($event->data === 'plugin_acknowledge_html') {
+        if ($event->data === 'plugin_acknowledge_assign') {
             echo $this->html();
             $event->stopPropagation();
             $event->preventDefault();
@@ -68,11 +67,16 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
         global $INPUT;
         global $USERINFO;
         $id = $INPUT->str('id');
+        $ackSubmitted = $INPUT->str('ack') === 'true';
         $user = $INPUT->server->str('REMOTE_USER');
         if ($id === '' || $user === '') return '';
 
         /** @var helper_plugin_acknowledge $helper */
         $helper = plugin_load('helper', 'acknowledge');
+
+        if ($ackSubmitted) {
+            $helper->saveAcknowledgement($id, $user);
+        }
 
         $html = '';
 
@@ -80,15 +84,41 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
         if ($ack) {
 
             $html .= '<div>';
-            $html .= 'You acknowledged this page ' . sprintf('%f', $ack);
+            $html .= $this->getLang('ackGranted') . sprintf('%s', dformat($ack));
             $html .= '</div>';
         } elseif ($helper->isUserAssigned($id, $user, $USERINFO['grps'])) {
+            $form = new Form(['id' => 'ackForm']);
+            $form->addCheckbox('ack');
+            $form->addLabel($this->getLang('ackText'), 'ack');
+            $form->addHTML('<button type="submit" name="acksubmit" id="ack-submit">Acknowledge</button>');
+
+            // attach submit listener to the newly injected form
+            $inlineScript = '<script>';
+            $inlineScript .= ' 
+                jQuery("#ackForm").submit(function(event) {
+                    event.preventDefault();
+                    var $form = jQuery( this ),
+                        ack = $form.find( "input[name=\'ack\']" )[0];
+
+                    jQuery(".plugin-acknowledge").load(
+                        DOKU_BASE + "lib/exe/ajax.php",
+                        {
+                            call: "plugin_acknowledge_html",
+                            id: JSINFO.id,
+                            ack: ack.checked
+                        }
+                    );
+                });
+            ';
+            $inlineScript .= '</script>';
+
             $html .= '<div>';
-            $html .= 'You need to acknowledge this';
+            $html .= $this->getLang('ackRequired') . ':<br>';
+            $html .= $form->toHTML();
+            $html .= $inlineScript;
             $html .= '</div>';
         }
-        
+
         return $html;
     }
 }
-

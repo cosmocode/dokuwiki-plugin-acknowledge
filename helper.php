@@ -73,7 +73,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     }
 
     /**
-     * Clears assignements for a page
+     * Clears assignments for a page
      *
      * @param string $page Page ID
      */
@@ -110,11 +110,11 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     }
 
     /**
-     * Has the givenuser acknowledged the given page?
+     * Has the given user acknowledged the given page?
      *
      * @param string $page
      * @param string $user
-     * @return bool|int timestamp of acknowledgement or fals
+     * @return bool|int timestamp of acknowledgement or false
      */
     public function hasUserAcknowledged($page, $user)
     {
@@ -124,8 +124,8 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sql = "SELECT ack 
                   FROM acks A, pages B
                  WHERE A.page = B.page
-                   AND page = ?
-                   AND user = ?
+                   AND A.page = ?
+                   AND A.user = ?
                    AND A.ack >= B.lastmod";
 
         $result = $sqlite->query($sql, $page, $user);
@@ -133,6 +133,26 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sqlite->res_close($result);
 
         return $acktime ? (int)$acktime : false;
+    }
+
+    /**
+     * Save user's acknowledgement for a given page
+     *
+     * @param string $page
+     * @param string $user
+     * @return bool
+     */
+    public function saveAcknowledgement($page, $user)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+
+        $sql = "REPLACE INTO acks (page, user, ack) VALUES (?,?, strftime('%s','now'))";
+
+        $result = $sqlite->query($sql, $page, $user);
+        $sqlite->res_close($result);
+        return true;
+
     }
 }
 
