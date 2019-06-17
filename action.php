@@ -90,32 +90,10 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
             $form = new Form(['id' => 'ackForm']);
             $form->addCheckbox('ack');
             $form->addLabel($this->getLang('ackText'), 'ack');
-            $form->addHTML('<button type="submit" name="acksubmit" id="ack-submit">Acknowledge</button>');
-
-            // attach submit listener to the newly injected form
-            $inlineScript = '<script>';
-            $inlineScript .= ' 
-                jQuery("#ackForm").submit(function(event) {
-                    event.preventDefault();
-                    var $form = jQuery( this ),
-                        ack = $form.find( "input[name=\'ack\']" )[0];
-
-                    jQuery(".plugin-acknowledge").load(
-                        DOKU_BASE + "lib/exe/ajax.php",
-                        {
-                            call: "plugin_acknowledge_html",
-                            id: JSINFO.id,
-                            ack: ack.checked
-                        }
-                    );
-                });
-            ';
-            $inlineScript .= '</script>';
-
+            $form->addHTML('<br><button type="submit" name="acksubmit" id="ack-submit">'. $this->getLang('ackButton') .'</button>');
             $html .= '<div>';
             $html .= $this->getLang('ackRequired') . ':<br>';
             $html .= $form->toHTML();
-            $html .= $inlineScript;
             $html .= '</div>';
         }
 

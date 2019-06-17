@@ -154,5 +154,66 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         return true;
 
     }
+
+    /**
+     * Fetch all assignments for a given user, with additional page information.
+     *
+     * @param string $user
+     * @return array|bool
+     */
+    public function getUserAssignments($user)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+
+        global $USERINFO;
+        $groups = $USERINFO['grps'];
+
+        $sql = "SELECT * FROM assignments A
+                JOIN pages B
+                ON A.page = B.page
+                WHERE A.assignee LIKE ? OR A.assignee LIKE ?";
+
+        $userWildcard = '%' . $user . '%';
+        $groupWildcard = '%@' . $groups . '%';
+
+        $result = $sqlite->query($sql, $userWildcard, $groupWildcard);
+        $assignments = $sqlite->res2arr($result);
+        $sqlite->res_close($result);
+
+        return $assignments;
+    }
+
+    /**
+     * Compare user's assignments with their past acknowledgements and return only pages
+     * without or with outdated acknowledgements
+     *
+     * @param string $user
+     * @param array $assignments
+     * @return array|bool
+     */
+    public function filterAcknowledged($user, $assignments)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+
+        $sql = 'SELECT * FROM acks WHERE user = ?';
+        $result = $sqlite->query($sql, $user);
+        $acknowledgements = $sqlite->res2arr($result);
+        $sqlite->res_close($result);
+
+        $listing = [];
+        $pageAcks = array_column($acknowledgements, 'ack', 'page');
+        foreach ($assignments as $assignment) {
+            if (
+                !in_array($assignment['page'], array_keys($pageAcks))
+                || (int)$assignment['lastmod'] > (int)$pageAcks[$assignment['page']]
+            ) {
+                $listing[] = $assignment;
+            }
+        }
+
+        return $listing;
+    }
 }
 
