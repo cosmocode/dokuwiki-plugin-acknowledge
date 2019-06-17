@@ -215,5 +215,23 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
 
         return $listing;
     }
+
+    /**
+     * Returns all acknowledgements
+     *
+     * @return array|bool
+     */
+    public function getAcknowledgements()
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+
+        $sql = 'SELECT * FROM acks ORDER BY ack DESC';
+        $result = $sqlite->query($sql);
+        $acknowledgements = $sqlite->res2arr($result);
+        $sqlite->res_close($result);
+
+        return $acknowledgements;
+    }
 }
 
