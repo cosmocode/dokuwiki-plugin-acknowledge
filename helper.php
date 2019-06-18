@@ -25,7 +25,33 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
             return null;
         }
 
+        $this->registerUDF($sqlite);
+
         return $sqlite;
+    }
+
+    /**
+     * Register user defined functions
+     *
+     * @param helper_plugin_sqlite $sqlite
+     */
+    protected function registerUDF($sqlite)
+    {
+        $sqlite->create_function('AUTH_ISMEMBER', [$this, 'auth_isMember'], -1);
+    }
+
+    /**
+     * Wrapper function for auth_isMember which accepts groups as string
+     *
+     * @param string $memberList
+     * @param string $user
+     * @param string $groups
+     * @return bool
+     */
+    public function auth_isMember($memberList, $user, $groups)
+    {
+        $a = 1;
+        return auth_isMember($memberList, $user, explode(',', $groups));
     }
 
     /**
@@ -172,12 +198,9 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sql = "SELECT * FROM assignments A
                 JOIN pages B
                 ON A.page = B.page
-                WHERE A.assignee LIKE ? OR A.assignee LIKE ?";
+                WHERE AUTH_ISMEMBER(A.assignee, ? , ?)";
 
-        $userWildcard = '%' . $user . '%';
-        $groupWildcard = '%@' . $groups . '%';
-
-        $result = $sqlite->query($sql, $userWildcard, $groupWildcard);
+        $result = $sqlite->query($sql, $user, implode(',', $groups));
         $assignments = $sqlite->res2arr($result);
         $sqlite->res_close($result);
 
