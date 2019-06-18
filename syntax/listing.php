@@ -33,6 +33,11 @@ class syntax_plugin_acknowledge_listing extends DokuWiki_Syntax_Plugin
     }
 
     /** @inheritDoc */
+    public function handle($match, $state, $pos, Doku_Handler $handler)
+    {
+    }
+
+    /** @inheritDoc */
     public function render($mode, Doku_Renderer $renderer, $data)
     {
         if ($mode !== 'xhtml') {
@@ -68,7 +73,9 @@ class syntax_plugin_acknowledge_listing extends DokuWiki_Syntax_Plugin
         if (!empty($pending)) {
             $html = '<ul>';
             foreach ($pending as $item) {
-                $html .= sprintf('<li><a href="%s">%s</a></li>', wl($item['page']), $item['page']);
+                // FIXME find better way of handling root links on namespaced pages
+                if (strpos($item['page'], ':') === false) $item['page'] = ':' . $item['page'];
+                $html .= '<li>' . html_wikilink($item['page']) . '</li>';
             }
             $html .= '</ul>';
         }
