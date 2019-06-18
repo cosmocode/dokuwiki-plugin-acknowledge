@@ -21,8 +21,6 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
     /**
      * Manage page meta data
      *
-     * FIXME do we track ALL pages? or do we check for assignments?
-     *
      * Store page last modified date
      * Handle page deletions
      * Remove assignments on page save, they get readded on rendering if needed
@@ -88,7 +86,7 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
             $html .= '</div>';
         } elseif ($helper->isUserAssigned($id, $user, $USERINFO['grps'])) {
             $form = new Form(['id' => 'ackForm']);
-            $form->addCheckbox('ack');
+            $form->addCheckbox('ack')->attr('required', 'required');
             $form->addLabel($this->getLang('ackText'), 'ack');
             $form->addHTML('<br><button type="submit" name="acksubmit" id="ack-submit">'. $this->getLang('ackButton') .'</button>');
             $html .= '<div>';
