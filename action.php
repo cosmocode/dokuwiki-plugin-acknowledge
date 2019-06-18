@@ -65,7 +65,7 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
         global $INPUT;
         global $USERINFO;
         $id = $INPUT->str('id');
-        $ackSubmitted = $INPUT->str('ack') === 'true';
+        $ackSubmitted = $INPUT->bool('ack');
         $user = $INPUT->server->str('REMOTE_USER');
         if ($id === '' || $user === '') return '';
 

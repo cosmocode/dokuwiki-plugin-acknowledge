@@ -12,7 +12,7 @@ jQuery(function () {
             {
                 call: "plugin_acknowledge_assign",
                 id: JSINFO.id,
-                ack: ack.checked
+                ack: ack.checked === true ? 1 : 0
             }
         );
     });
