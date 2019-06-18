@@ -72,9 +72,7 @@ class syntax_plugin_acknowledge_listing extends DokuWiki_Syntax_Plugin
         if (!empty($pending)) {
             $html = '<ul>';
             foreach ($pending as $item) {
-                // FIXME find better way of handling root links on namespaced pages
-                if (strpos($item['page'], ':') === false) $item['page'] = ':' . $item['page'];
-                $html .= '<li>' . html_wikilink($item['page']) . '</li>';
+                $html .= '<li>' . html_wikilink(':' . $item['page']) . '</li>';
             }
             $html .= '</ul>';
         }

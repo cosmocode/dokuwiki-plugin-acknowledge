@@ -50,8 +50,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
      */
     public function auth_isMember($memberList, $user, $groups)
     {
-        $a = 1;
-        return auth_isMember($memberList, $user, explode(',', $groups));
+        return auth_isMember($memberList, $user, explode('///', $groups));
     }
 
     /**
@@ -204,7 +203,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
                 WHERE AUTH_ISMEMBER(A.assignee, ? , ?)
                 AND ( (C.user = ? AND C.ack < B.lastmod) OR (C.user IS NOT ?) )";
 
-        $result = $sqlite->query($sql, $user, implode(',', $groups), $user, $user);
+        $result = $sqlite->query($sql, $user, implode('///', $groups), $user, $user);
         $assignments = $sqlite->res2arr($result);
         $sqlite->res_close($result);
 
