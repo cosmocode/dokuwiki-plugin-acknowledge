@@ -65,8 +65,7 @@ class syntax_plugin_acknowledge_listing extends DokuWiki_Syntax_Plugin
 
         /** @var helper_plugin_acknowledge $helper */
         $helper = plugin_load('helper', 'acknowledge');
-        $all = $helper->getUserAssignments($user);
-        $pending = $helper->filterAcknowledged($user, $all);
+        $pending = $helper->getUserAssignments($user);
 
         $html =  $this->getLang('ackNotFound');
 

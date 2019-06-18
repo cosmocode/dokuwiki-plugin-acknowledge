@@ -182,7 +182,8 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     }
 
     /**
-     * Fetch all assignments for a given user, with additional page information.
+     * Fetch all assignments for a given user, with additional page information,
+     * filtering already granted acknowledgements.
      *
      * @param string $user
      * @return array|bool
@@ -195,48 +196,19 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         global $USERINFO;
         $groups = $USERINFO['grps'];
 
-        $sql = "SELECT * FROM assignments A
+        $sql = "SELECT A.page, A.assignee, B.lastmod, C.user, C.ack FROM assignments A
                 JOIN pages B
                 ON A.page = B.page
-                WHERE AUTH_ISMEMBER(A.assignee, ? , ?)";
+                LEFT JOIN acks C
+                ON A.page = C.page
+                WHERE AUTH_ISMEMBER(A.assignee, ? , ?)
+                AND ( (C.user = ? AND C.ack < B.lastmod) OR (C.user IS NOT ?) )";
 
-        $result = $sqlite->query($sql, $user, implode(',', $groups));
+        $result = $sqlite->query($sql, $user, implode(',', $groups), $user, $user);
         $assignments = $sqlite->res2arr($result);
         $sqlite->res_close($result);
 
         return $assignments;
-    }
-
-    /**
-     * Compare user's assignments with their past acknowledgements and return only pages
-     * without or with outdated acknowledgements
-     *
-     * @param string $user
-     * @param array $assignments
-     * @return array|bool
-     */
-    public function filterAcknowledged($user, $assignments)
-    {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return false;
-
-        $sql = 'SELECT * FROM acks WHERE user = ?';
-        $result = $sqlite->query($sql, $user);
-        $acknowledgements = $sqlite->res2arr($result);
-        $sqlite->res_close($result);
-
-        $listing = [];
-        $pageAcks = array_column($acknowledgements, 'ack', 'page');
-        foreach ($assignments as $assignment) {
-            if (
-                !in_array($assignment['page'], array_keys($pageAcks))
-                || (int)$assignment['lastmod'] > (int)$pageAcks[$assignment['page']]
-            ) {
-                $listing[] = $assignment;
-            }
-        }
-
-        return $listing;
     }
 
     /**
