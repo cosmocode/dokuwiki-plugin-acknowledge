@@ -1,13 +1,13 @@
 jQuery(function () {
 
-    var aContainer = jQuery('.plugin-acknowledge-assign');
+    var $aContainer = jQuery('.plugin-acknowledge-assign');
 
-    aContainer.on('submit', function (event) {
+    $aContainer.on('submit', function (event) {
         event.preventDefault();
         var $form = jQuery( event.target ),
             ack = $form.find( "input[name='ack']" )[0];
 
-        aContainer.load(
+        $aContainer.load(
             DOKU_BASE + "lib/exe/ajax.php",
             {
                 call: "plugin_acknowledge_assign",
@@ -16,7 +16,7 @@ jQuery(function () {
             }
         );
     });
-    aContainer.load(
+    $aContainer.load(
         DOKU_BASE + 'lib/exe/ajax.php',
         {
             call: 'plugin_acknowledge_assign',
