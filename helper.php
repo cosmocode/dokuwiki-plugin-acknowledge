@@ -25,7 +25,32 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
             return null;
         }
 
+        $this->registerUDF($sqlite);
+
         return $sqlite;
+    }
+
+    /**
+     * Register user defined functions
+     *
+     * @param helper_plugin_sqlite $sqlite
+     */
+    protected function registerUDF($sqlite)
+    {
+        $sqlite->create_function('AUTH_ISMEMBER', [$this, 'auth_isMember'], -1);
+    }
+
+    /**
+     * Wrapper function for auth_isMember which accepts groups as string
+     *
+     * @param string $memberList
+     * @param string $user
+     * @param string $groups
+     * @return bool
+     */
+    public function auth_isMember($memberList, $user, $groups)
+    {
+        return auth_isMember($memberList, $user, explode('///', $groups));
     }
 
     /**
@@ -73,7 +98,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     }
 
     /**
-     * Clears assignements for a page
+     * Clears assignments for a page
      *
      * @param string $page Page ID
      */
@@ -110,11 +135,11 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     }
 
     /**
-     * Has the givenuser acknowledged the given page?
+     * Has the given user acknowledged the given page?
      *
      * @param string $page
      * @param string $user
-     * @return bool|int timestamp of acknowledgement or fals
+     * @return bool|int timestamp of acknowledgement or false
      */
     public function hasUserAcknowledged($page, $user)
     {
@@ -124,8 +149,8 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sql = "SELECT ack 
                   FROM acks A, pages B
                  WHERE A.page = B.page
-                   AND page = ?
-                   AND user = ?
+                   AND A.page = ?
+                   AND A.user = ?
                    AND A.ack >= B.lastmod";
 
         $result = $sqlite->query($sql, $page, $user);
@@ -133,6 +158,74 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sqlite->res_close($result);
 
         return $acktime ? (int)$acktime : false;
+    }
+
+    /**
+     * Save user's acknowledgement for a given page
+     *
+     * @param string $page
+     * @param string $user
+     * @return bool
+     */
+    public function saveAcknowledgement($page, $user)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+
+        $sql = "REPLACE INTO acks (page, user, ack) VALUES (?,?, strftime('%s','now'))";
+
+        $result = $sqlite->query($sql, $page, $user);
+        $sqlite->res_close($result);
+        return true;
+
+    }
+
+    /**
+     * Fetch all assignments for a given user, with additional page information,
+     * filtering already granted acknowledgements.
+     *
+     * @param string $user
+     * @return array|bool
+     */
+    public function getUserAssignments($user)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+
+        global $USERINFO;
+        $groups = $USERINFO['grps'];
+
+        $sql = "SELECT A.page, A.assignee, B.lastmod, C.user, C.ack FROM assignments A
+                JOIN pages B
+                ON A.page = B.page
+                LEFT JOIN acks C
+                ON A.page = C.page
+                WHERE AUTH_ISMEMBER(A.assignee, ? , ?)
+                AND ( (C.user = ? AND C.ack < B.lastmod) OR (C.user IS NOT ?) )";
+
+        $result = $sqlite->query($sql, $user, implode('///', $groups), $user, $user);
+        $assignments = $sqlite->res2arr($result);
+        $sqlite->res_close($result);
+
+        return $assignments;
+    }
+
+    /**
+     * Returns all acknowledgements
+     *
+     * @return array|bool
+     */
+    public function getAcknowledgements()
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+
+        $sql = 'SELECT * FROM acks ORDER BY ack DESC';
+        $result = $sqlite->query($sql);
+        $acknowledgements = $sqlite->res2arr($result);
+        $sqlite->res_close($result);
+
+        return $acknowledgements;
     }
 }
 

@@ -5,12 +5,6 @@
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author  Andreas Gohr, Anna Dabrowska <dokuwiki@cosmocode.de>
  */
-
-// must be run within Dokuwiki
-if (!defined('DOKU_INC')) {
-    die();
-}
-
 class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
 {
 
@@ -19,7 +13,7 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
      */
     public function getMenuSort()
     {
-        return FIXME;
+        return 100;
     }
 
     /**
@@ -35,7 +29,6 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
      */
     public function handle()
     {
-
     }
 
     /**
@@ -43,7 +36,29 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
      */
     public function html()
     {
+        /** @var helper_plugin_acknowledge $helper */
+        $helper = plugin_load('helper', 'acknowledge');
+
+        $acks = $helper->getAcknowledgements();
+
         ptln('<h1>' . $this->getLang('menu') . '</h1>');
+
+        echo '<table>';
+        echo '<tr>';
+        echo '<th>' . $this->getLang('overviewPage') . '</th>';
+        echo '<th>' . $this->getLang('overviewUser') . '</th>';
+        echo '<th>' . $this->getLang('overviewTime') . '</th>';
+        echo '</tr>';
+
+        foreach ($acks as $ack) {
+            echo '<tr>';
+            echo '<td>' . html_wikilink($ack['page']) . '</td>' .
+                '<td>' . hsc($ack['user']) . '</td><td>' . dformat($ack['ack']) . '</td>';
+            echo '</tr>';
+        }
+
+        echo '</table>';
+
     }
 }
 
