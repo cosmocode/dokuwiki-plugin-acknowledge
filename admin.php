@@ -59,6 +59,8 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
 
         echo '</table>';
 
+        echo '<p>' . $this->getLang('overviewHistory') . '</p>';
+
     }
 }
 

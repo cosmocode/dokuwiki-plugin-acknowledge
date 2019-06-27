@@ -172,7 +172,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sqlite = $this->getDB();
         if (!$sqlite) return false;
 
-        $sql = "REPLACE INTO acks (page, user, ack) VALUES (?,?, strftime('%s','now'))";
+        $sql = "INSERT INTO acks (page, user, ack) VALUES (?,?, strftime('%s','now'))";
 
         $result = $sqlite->query($sql, $page, $user);
         $sqlite->res_close($result);
@@ -199,9 +199,9 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
                 JOIN pages B
                 ON A.page = B.page
                 LEFT JOIN acks C
-                ON A.page = C.page
+                ON A.page = C.page AND ( (C.user = ? AND C.ack > B.lastmod) OR (C.user IS NOT ?) )
                 WHERE AUTH_ISMEMBER(A.assignee, ? , ?)
-                AND ( (C.user = ? AND C.ack < B.lastmod) OR (C.user IS NOT ?) )";
+                AND ack IS NULL";
 
         $result = $sqlite->query($sql, $user, implode('///', $groups), $user, $user);
         $assignments = $sqlite->res2arr($result);
@@ -220,7 +220,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sqlite = $this->getDB();
         if (!$sqlite) return false;
 
-        $sql = 'SELECT * FROM acks ORDER BY ack DESC';
+        $sql = 'SELECT page, user, max(ack) AS ack FROM acks GROUP BY user,page ORDER BY ack DESC';
         $result = $sqlite->query($sql);
         $acknowledgements = $sqlite->res2arr($result);
         $sqlite->res_close($result);
