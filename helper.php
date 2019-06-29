@@ -203,7 +203,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
                 WHERE AUTH_ISMEMBER(A.assignee, ? , ?)
                 AND ack IS NULL";
 
-        $result = $sqlite->query($sql, $user, implode('///', $groups), $user, $user);
+        $result = $sqlite->query($sql, $user, $user, $user, implode('///', $groups));
         $assignments = $sqlite->res2arr($result);
         $sqlite->res_close($result);
 
