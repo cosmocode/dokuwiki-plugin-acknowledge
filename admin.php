@@ -52,7 +52,7 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
 
         foreach ($acks as $ack) {
             echo '<tr>';
-            echo '<td>' . html_wikilink($ack['page']) . '</td>' .
+            echo '<td>' . html_wikilink(':' . $ack['page']) . '</td>' .
                 '<td>' . hsc($ack['user']) . '</td><td>' . dformat($ack['ack']) . '</td>';
             echo '</tr>';
         }
