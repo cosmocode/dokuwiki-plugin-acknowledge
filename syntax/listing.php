@@ -60,12 +60,16 @@ class syntax_plugin_acknowledge_listing extends DokuWiki_Syntax_Plugin
     protected function getListing()
     {
         global $INPUT;
+        global $USERINFO;
+
         $user = $INPUT->server->str('REMOTE_USER');
         if ($user === '') return '';
 
+        $groups = $USERINFO['grps'];
+
         /** @var helper_plugin_acknowledge $helper */
         $helper = plugin_load('helper', 'acknowledge');
-        $pending = $helper->getUserAssignments($user);
+        $pending = $helper->getUserAssignments($user, $groups);
 
         $html =  $this->getLang('ackNotFound');
 

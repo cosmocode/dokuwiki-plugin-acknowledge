@@ -185,15 +185,13 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
      * filtering already granted acknowledgements.
      *
      * @param string $user
+     * @param array $groups
      * @return array|bool
      */
-    public function getUserAssignments($user)
+    public function getUserAssignments($user, $groups)
     {
         $sqlite = $this->getDB();
         if (!$sqlite) return false;
-
-        global $USERINFO;
-        $groups = $USERINFO['grps'];
 
         $sql = "SELECT A.page, A.assignee, B.lastmod, C.user, C.ack FROM assignments A
                 JOIN pages B
