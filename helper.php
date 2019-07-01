@@ -197,11 +197,11 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
                 JOIN pages B
                 ON A.page = B.page
                 LEFT JOIN acks C
-                ON A.page = C.page AND ( (C.user = ? AND C.ack > B.lastmod) OR (C.user IS NOT ?) )
+                ON A.page = C.page AND ( (C.user = ? AND C.ack > B.lastmod) )
                 WHERE AUTH_ISMEMBER(A.assignee, ? , ?)
                 AND ack IS NULL";
 
-        $result = $sqlite->query($sql, $user, $user, $user, implode('///', $groups));
+        $result = $sqlite->query($sql, $user, $user, implode('///', $groups));
         $assignments = $sqlite->res2arr($result);
         $sqlite->res_close($result);
 
