@@ -70,15 +70,33 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     }
 
     /**
-     * Update last modified date of page
+     * Update last modified date of page if content has changed
      *
      * @param string $page Page ID
      * @param int $lastmod timestamp of last non-minor change
      */
-    public function storePageDate($page, $lastmod)
+    public function storePageDate($page, $lastmod, $newContent)
     {
         $sqlite = $this->getDB();
         if (!$sqlite) return;
+
+        $identical = true;
+        $changelog = new \dokuwiki\ChangeLog\PageChangeLog($page);
+
+        $revs = $changelog->getRevisions(1, 20);
+
+        foreach ($revs as $rev) {
+            $info = $changelog->getRevisionInfo($rev);
+            if ($info['type'] !== DOKU_CHANGE_TYPE_MINOR_EDIT) {
+                // compare content
+                $oldContent = str_replace(NL, '', io_readFile(wikiFN($page, $rev)));
+                $newContent = str_replace(NL, '', $newContent);
+                if ($oldContent !== $newContent) $identical = false;
+                break;
+            }
+        }
+
+        if ($identical) return;
 
         $sql = "REPLACE INTO pages (page, lastmod) VALUES (?,?)";
         $sqlite->query($sql, $page, $lastmod);
@@ -146,7 +164,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sqlite = $this->getDB();
         if (!$sqlite) return false;
 
-        $sql = "SELECT ack 
+        $sql = "SELECT ack
                   FROM acks A, pages B
                  WHERE A.page = B.page
                    AND A.page = ?

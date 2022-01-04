@@ -36,7 +36,7 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
         if ($event->data['changeType'] === DOKU_CHANGE_TYPE_DELETE) {
             $helper->removePage($event->data['id']);
         } elseif ($event->data['changeType'] !== DOKU_CHANGE_TYPE_MINOR_EDIT) {
-            $helper->storePageDate($event->data['id'], $event->data['newRevision']);
+            $helper->storePageDate($event->data['id'], $event->data['newRevision'], $event->data['newContent']);
         }
 
         $helper->clearAssignments($event->data['id']);
