@@ -14,7 +14,7 @@ class helper_plugin_acknowledge_test extends DokuWikiTest
     /** @var helper_plugin_sqlite */
     protected $db;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
         $this->helper = plugin_load('helper', 'acknowledge');
