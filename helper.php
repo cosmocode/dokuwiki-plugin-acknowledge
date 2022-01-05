@@ -77,26 +77,16 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
      */
     public function storePageDate($page, $lastmod, $newContent)
     {
+        $changelog = new \dokuwiki\ChangeLog\PageChangeLog($page);
+        $revs = $changelog->getRevisions(1, 1);
+
+        // compare content
+        $oldContent = str_replace(NL, '', io_readFile(wikiFN($page, $revs[0])));
+        $newContent = str_replace(NL, '', $newContent);
+        if ($oldContent === $newContent) return;
+
         $sqlite = $this->getDB();
         if (!$sqlite) return;
-
-        $identical = true;
-        $changelog = new \dokuwiki\ChangeLog\PageChangeLog($page);
-
-        $revs = $changelog->getRevisions(1, 20);
-
-        foreach ($revs as $rev) {
-            $info = $changelog->getRevisionInfo($rev);
-            if ($info['type'] !== DOKU_CHANGE_TYPE_MINOR_EDIT) {
-                // compare content
-                $oldContent = str_replace(NL, '', io_readFile(wikiFN($page, $rev)));
-                $newContent = str_replace(NL, '', $newContent);
-                if ($oldContent !== $newContent) $identical = false;
-                break;
-            }
-        }
-
-        if ($identical) return;
 
         $sql = "REPLACE INTO pages (page, lastmod) VALUES (?,?)";
         $sqlite->query($sql, $page, $lastmod);
