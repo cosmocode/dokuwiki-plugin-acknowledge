@@ -70,13 +70,21 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     }
 
     /**
-     * Update last modified date of page
+     * Update last modified date of page if content has changed
      *
      * @param string $page Page ID
      * @param int $lastmod timestamp of last non-minor change
      */
-    public function storePageDate($page, $lastmod)
+    public function storePageDate($page, $lastmod, $newContent)
     {
+        $changelog = new \dokuwiki\ChangeLog\PageChangeLog($page);
+        $revs = $changelog->getRevisions(0, 1);
+
+        // compare content
+        $oldContent = str_replace(NL, '', io_readFile(wikiFN($page, $revs[0])));
+        $newContent = str_replace(NL, '', $newContent);
+        if ($oldContent === $newContent) return;
+
         $sqlite = $this->getDB();
         if (!$sqlite) return;
 
@@ -146,7 +154,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sqlite = $this->getDB();
         if (!$sqlite) return false;
 
-        $sql = "SELECT ack 
+        $sql = "SELECT ack
                   FROM acks A, pages B
                  WHERE A.page = B.page
                    AND A.page = ?

@@ -32,45 +32,4 @@ class general_plugin_acknowledge_test extends DokuWikiTest
         $this->assertRegExp('/^\d\d\d\d-\d\d-\d\d$/', $info['date']);
         $this->assertTrue(false !== strtotime($info['date']));
     }
-
-    /**
-     * Test to ensure that every conf['...'] entry in conf/default.php has a corresponding meta['...'] entry in
-     * conf/metadata.php.
-     */
-    public function test_plugin_conf()
-    {
-        $conf_file = __DIR__ . '/../conf/default.php';
-        if (file_exists($conf_file)) {
-            include($conf_file);
-        }
-        $meta_file = __DIR__ . '/../conf/metadata.php';
-        if (file_exists($meta_file)) {
-            include($meta_file);
-        }
-
-        $this->assertEquals(
-            gettype($conf),
-            gettype($meta),
-            'Both ' . DOKU_PLUGIN . 'acknowledge/conf/default.php and ' . DOKU_PLUGIN . 'acknowledge/conf/metadata.php have to exist and contain the same keys.'
-        );
-
-        if (gettype($conf) != 'NULL' && gettype($meta) != 'NULL') {
-            foreach ($conf as $key => $value) {
-                $this->assertArrayHasKey(
-                    $key,
-                    $meta,
-                    'Key $meta[\'' . $key . '\'] missing in ' . DOKU_PLUGIN . 'acknowledge/conf/metadata.php'
-                );
-            }
-
-            foreach ($meta as $key => $value) {
-                $this->assertArrayHasKey(
-                    $key,
-                    $conf,
-                    'Key $conf[\'' . $key . '\'] missing in ' . DOKU_PLUGIN . 'acknowledge/conf/default.php'
-                );
-            }
-        }
-
-    }
 }
