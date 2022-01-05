@@ -78,7 +78,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     public function storePageDate($page, $lastmod, $newContent)
     {
         $changelog = new \dokuwiki\ChangeLog\PageChangeLog($page);
-        $revs = $changelog->getRevisions(1, 1);
+        $revs = $changelog->getRevisions(0, 1);
 
         // compare content
         $oldContent = str_replace(NL, '', io_readFile(wikiFN($page, $revs[0])));
