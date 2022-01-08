@@ -90,7 +90,17 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
             $form->addLabel($this->getLang('ackText'), 'ack');
             $form->addHTML('<br><button type="submit" name="acksubmit" id="ack-submit">'. $this->getLang('ackButton') .'</button>');
             $html .= '<div>';
-            $html .= $this->getLang('ackRequired') . ':<br>';
+
+            $html .= $this->getLang('ackRequired') . '<br>';
+
+            $latest = $helper->getLatestUserAcknowledgement($id, $user);
+            if ($latest) {
+                $html .= '<a href="'
+                    . wl($id, ['do' => 'diff', 'at' => $latest], false, '&') . '">'
+                    . sprintf($this->getLang('ackDiff'), dformat($latest))
+                    . '</a><br>';
+            }
+
             $html .= $form->toHTML();
             $html .= '</div>';
         }

@@ -13,6 +13,7 @@ $lang['ackRequired'] = 'You need to acknowledge this';
 $lang['ackText'] = 'I confirm that I have read and understood the contents of this page';
 $lang['ackButton'] = 'Acknowledge';
 $lang['ackGranted'] = 'You acknowledged this page on ';
+$lang['ackDiff'] = 'Show differences since your last acknowledgement from %s';
 $lang['ackNotFound'] = 'Nothing found';
 $lang['overviewPage'] = 'Page';
 $lang['overviewUser'] = 'User';
