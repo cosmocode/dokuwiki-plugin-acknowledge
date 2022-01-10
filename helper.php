@@ -169,6 +169,31 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     }
 
     /**
+     * Timestamp of the latest acknowledgment of the given page
+     * by the given user
+     *
+     * @param string $page
+     * @param string $user
+     * @return bool|string
+     */
+    public function getLatestUserAcknowledgement($page, $user)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+
+        $sql = "SELECT MAX(ack)
+                  FROM acks
+                 WHERE page = ?
+                   AND user = ?";
+
+        $result = $sqlite->query($sql, $page, $user);
+        $latestAck = $sqlite->res2single($result);
+        $sqlite->res_close($result);
+
+        return $latestAck;
+    }
+
+    /**
      * Save user's acknowledgement for a given page
      *
      * @param string $page
