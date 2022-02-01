@@ -23,5 +23,6 @@ $lang['overviewCurrent'] = 'Current?';
 $lang['overviewHistory'] = 'You can access previous acknowledgments by querying the database directly. Ask your administrator for assistance.';
 $lang['count'] = 'User %s signed %d of %d pages.';
 $lang['yes'] = 'yes';
+$lang['home'] = 'Newest Acknowledgements';
 
 $lang['error sqlite plugin missing'] = 'The sqlite plugin is missing';

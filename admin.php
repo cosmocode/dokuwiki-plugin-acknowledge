@@ -41,8 +41,9 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
     {
         global $INPUT;
 
+        echo '<div class="plugin_acknowledgement_admin">';
         echo '<h1>' . $this->getLang('menu') . '</h1>';
-
+        $this->htmlForms();
         if ($INPUT->has('user')) {
             $this->htmlUserStatus($INPUT->str('user'));
         } elseif ($INPUT->has('pg')) {
@@ -50,9 +51,14 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
         } else {
             $this->htmlLatest();
         }
-
+        echo '</div>';
     }
 
+    /**
+     * Show which users have or need ot acknowledge a specific page
+     *
+     * @param $page
+     */
     protected function htmlPageStatus($page)
     {
         global $lang;
@@ -108,6 +114,32 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
     }
 
     /**
+     * @return void
+     */
+    protected function htmlForms()
+    {
+        global $ID;
+
+        echo '<nav>';
+        echo $this->homeLink();
+
+        $form = new dokuwiki\Form\Form(['method' => 'GET']);
+        $form->setHiddenField('do', 'admin');
+        $form->setHiddenField('page', 'acknowledge');
+        $form->addTextInput('user', $this->getLang('overviewUser'));
+        $form->addButton('', '>');
+        echo $form->toHTML();
+
+        $form = new dokuwiki\Form\Form(['method' => 'GET']);
+        $form->setHiddenField('do', 'admin');
+        $form->setHiddenField('page', 'acknowledge');
+        $form->addTextInput('pg', $this->getLang('overviewPage'))->val($ID);
+        $form->addButton('', '>');
+        echo $form->toHTML();
+        echo '</nav>';
+    }
+
+    /**
      * Print the given acknowledge data
      *
      * @param array $data
@@ -141,6 +173,21 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
         echo '</table>';
 
         return $count;
+    }
+
+    protected function homeLink()
+    {
+        global $ID;
+
+        $url = wl(
+            $ID,
+            [
+                'do' => 'admin',
+                'page' => 'acknowledge',
+            ]
+        );
+
+        return '<a href="' . $url . '">' . $this->getLang('home') . '</a>';
     }
 
     /**
