@@ -15,3 +15,35 @@
         width: 100%;
     }
 }
+
+.plugin-acknowledge-assign {
+    @check-ok-color: #355723;
+    @check-needed-color: #840705;
+
+    display: inline-block;
+    padding: 1em 0.2em;
+    border: 1px solid #000;
+
+    svg {
+        width: 48px;
+        height: 48px;
+        fill: @check-ok-color;
+    }
+
+    div {
+        display: table-cell;
+        vertical-align: top;
+        padding-right: .8em;
+    }
+
+    div.noack {
+        svg {
+            fill: @check-needed-color;
+        }
+    }
+
+    label {
+        margin-top: 1em;
+        display: block;
+    }
+}
