@@ -45,10 +45,28 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
 
         if ($INPUT->has('user')) {
             $this->htmlUserStatus($INPUT->str('user'));
+        } elseif ($INPUT->has('pg')) {
+            $this->htmlPageStatus($INPUT->str('pg'));
         } else {
             $this->htmlLatest();
         }
 
+    }
+
+    protected function htmlPageStatus($page)
+    {
+        global $lang;
+
+        /** @var helper_plugin_acknowledge $helper */
+        $helper = plugin_load('helper', 'acknowledge');
+
+        $acknowledgements = $helper->getPageAcknowledgements($page);
+        if (!$acknowledgements) {
+            echo '<p>' . $lang['nothingfound'] . '</p>';
+            return;
+        }
+
+        $count = $this->htmlTable($acknowledgements);
     }
 
     /**
@@ -73,29 +91,7 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
         $helper = plugin_load('helper', 'acknowledge');
 
         $assignments = $helper->getUserAcknowledgements($user, $userinfo['grps']);
-
-        echo '<table>';
-        echo '<tr>';
-        echo '<th>' . $this->getLang('overviewPage') . '</th>';
-        echo '<th>' . $this->getLang('overviewMod') . '</th>';
-        echo '<th>' . $this->getLang('overviewTime') . '</th>';
-        echo '<th>' . $this->getLang('overviewCurrent') . '</th>';
-        echo '</tr>';
-
-        $count = 0;
-        foreach ($assignments as $ass) {
-            $current = $ass['ack'] >= $ass['lastmod'];
-            if ($current) $count++;
-
-            echo '<tr>';
-            echo '<td>' . html_wikilink(':' . $ass['page']) . '</td>';
-            echo '<td>' . ($ass['lastmod'] ? dformat($ass['lastmod']) : '') . '</td>';
-            echo '<td>' . ($ass['ack'] ? dformat($ass['ack']) : '') . '</td>';
-            echo '<td>' . ($current ? $this->getLang('yes') : '') . '</td>';
-            echo '</tr>';
-        }
-        echo '</table>';
-
+        $count = $this->htmlTable($assignments);
         echo '<p>' . sprintf($this->getLang('count'), hsc($user), $count, count($assignments)) . '</p>';
     }
 
@@ -107,25 +103,44 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
         /** @var helper_plugin_acknowledge $helper */
         $helper = plugin_load('helper', 'acknowledge');
         $acks = $helper->getAcknowledgements();
+        $this->htmlTable($acks);
+        echo '<p>' . $this->getLang('overviewHistory') . '</p>';
+    }
 
+    /**
+     * Print the given acknowledge data
+     *
+     * @param array $data
+     * @return int number of acknowledged entries
+     */
+    protected function htmlTable($data)
+    {
         echo '<table>';
         echo '<tr>';
         echo '<th>' . $this->getLang('overviewPage') . '</th>';
         echo '<th>' . $this->getLang('overviewUser') . '</th>';
+        echo '<th>' . $this->getLang('overviewMod') . '</th>';
         echo '<th>' . $this->getLang('overviewTime') . '</th>';
+        echo '<th>' . $this->getLang('overviewCurrent') . '</th>';
         echo '</tr>';
 
-        foreach ($acks as $ack) {
+        $count = 0;
+        foreach ($data as $item) {
+            $current = $item['ack'] >= $item['lastmod'];
+            if ($current) $count++;
+
             echo '<tr>';
-            echo '<td>' . html_wikilink(':' . $ack['page']) . '</td>';
-            echo '<td>' . $this->userLink($ack['user']) . '</td>';
-            echo '<td>' . dformat($ack['ack']) . '</td>';
+            echo '<td>' . $this->pageLink($item['page']) . '</td>';
+            echo '<td>' . $this->userLink($item['user']) . '</td>';
+            echo '<td>' . html_wikilink(':' . $item['page'],
+                    ($item['lastmod'] ? dformat($item['lastmod']) : '?')) . '</td>';
+            echo '<td>' . ($item['ack'] ? dformat($item['ack']) : '') . '</td>';
+            echo '<td>' . ($current ? $this->getLang('yes') : '') . '</td>';
             echo '</tr>';
         }
-
         echo '</table>';
 
-        echo '<p>' . $this->getLang('overviewHistory') . '</p>';
+        return $count;
     }
 
     /**
@@ -148,6 +163,28 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
         );
 
         return '<a href="' . $url . '">' . hsc($user) . '</a>';
+    }
+
+    /**
+     * Link to the page overview
+     *
+     * @param string $page
+     * @return string
+     */
+    protected function pageLink($page)
+    {
+        global $ID;
+
+        $url = wl(
+            $ID,
+            [
+                'do' => 'admin',
+                'page' => 'acknowledge',
+                'pg' => $page,
+            ]
+        );
+
+        return '<a href="' . $url . '">' . hsc($page) . '</a>';
     }
 }
 

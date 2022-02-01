@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Helper tests for the acknowledge plugin
  *
@@ -13,6 +14,14 @@ class helper_plugin_acknowledge_test extends DokuWikiTest
     protected $helper;
     /** @var helper_plugin_sqlite */
     protected $db;
+
+    public static function setUpBeforeClass(): void
+    {
+        parent::setUpBeforeClass();
+        /** @var auth_plugin_authplain $auth */
+        global $auth;
+        $auth->createUser('max', 'none', 'max', 'max@example.com', ['super']);
+    }
 
     public function setUp(): void
     {
@@ -53,17 +62,17 @@ class helper_plugin_acknowledge_test extends DokuWikiTest
             [
                 'page' => 'dokuwiki:acktest1',
                 'user' => 'max',
-                'ack' => '1560805770'
+                'ack' => '1560805770',
             ],
             [
                 'page' => 'dokuwiki:acktest3',
                 'user' => 'regular',
-                'ack' => '1560805555'
+                'ack' => '1560805555',
             ],
             [
                 'page' => 'dokuwiki:acktest3',
                 'user' => 'max',
-                'ack' => '1560805000'
+                'ack' => '1560805000',
             ],
         ];
         $this->assertEquals($expected, $actual);
@@ -79,7 +88,7 @@ class helper_plugin_acknowledge_test extends DokuWikiTest
             [
                 'page' => 'dokuwiki:acktest1',
                 'user' => 'max',
-                'ack' => '1560805770'
+                'ack' => '1560805770',
             ],
         ];
         $this->assertEquals($expected, $actual);
@@ -96,9 +105,9 @@ class helper_plugin_acknowledge_test extends DokuWikiTest
                 'page' => 'dokuwiki:acktest1',
                 'assignee' => 'regular, @super',
                 'lastmod' => '1560805365',
-                'user' => NULL,
-                'ack' => NULL
-            ]
+                'user' => null,
+                'ack' => null,
+            ],
         ];
         $this->assertEquals($expected, $actual);
 
@@ -108,21 +117,22 @@ class helper_plugin_acknowledge_test extends DokuWikiTest
                 'page' => 'dokuwiki:acktest2',
                 'assignee' => '@super',
                 'lastmod' => '1560805365',
-                'user' => NULL,
-                'ack' => NULL
+                'user' => null,
+                'ack' => null,
             ],
             [
                 'page' => 'dokuwiki:acktest3',
                 'assignee' => '@user',
                 'lastmod' => '1560805365',
-                'user' => NULL,
-                'ack' => NULL
-            ]
+                'user' => null,
+                'ack' => null,
+            ],
         ];
         $this->assertEquals($expected, $actual);
     }
 
-    public function test_getUserAcknowledgements() {
+    public function test_getUserAcknowledgements()
+    {
         $actual = $this->helper->getUserAcknowledgements('max', ['user', 'super']);
         $expected = [
             [
@@ -130,23 +140,58 @@ class helper_plugin_acknowledge_test extends DokuWikiTest
                 'assignee' => 'regular, @super',
                 'lastmod' => '1560805365',
                 'user' => 'max',
-                'ack' => '1560805770'
+                'ack' => '1560805770',
             ],
             [
                 'page' => 'dokuwiki:acktest2',
                 'assignee' => '@super',
                 'lastmod' => '1560805365',
-                'user' => NULL,
-                'ack' => NULL
+                'user' => null,
+                'ack' => null,
             ],
             [
                 'page' => 'dokuwiki:acktest3',
                 'assignee' => '@user',
                 'lastmod' => '1560805365',
                 'user' => 'max',
-                'ack' => '1560805000'
-            ]
+                'ack' => '1560805000',
+            ],
         ];
         $this->assertEquals($expected, $actual);
+    }
+
+    /**
+     * Check what users are assigned to a page that has a user and a group in the database
+     */
+    public function test_getPageAssignees()
+    {
+        $actual = $this->helper->getPageAssignees('dokuwiki:acktest1');
+        $expected = ['regular', 'max'];
+        $this->assertEquals($expected, $actual);
+    }
+
+    /**
+     * Check what acknowledgments are there for a page
+     */
+    public function test_getPageAcknowledgements()
+    {
+        $actual = $this->helper->getPageAcknowledgements('dokuwiki:acktest1');
+        $expected = [
+            [
+                'page' => 'dokuwiki:acktest1',
+                'lastmod' => '1560805365',
+                'user' => 'max',
+                'ack' => '1560805770',
+            ],
+            [
+                'page' => 'dokuwiki:acktest1',
+                'lastmod' => '1560805365',
+                'user' => 'regular',
+                'ack' => null,
+            ],
+
+        ];
+        $this->assertEquals($expected, $actual);
+
     }
 }
