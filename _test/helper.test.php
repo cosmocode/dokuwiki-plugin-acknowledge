@@ -63,16 +63,19 @@ class helper_plugin_acknowledge_test extends DokuWikiTest
                 'page' => 'dokuwiki:acktest1',
                 'user' => 'max',
                 'ack' => '1560805770',
+                'lastmod' => '1560805365',
             ],
             [
                 'page' => 'dokuwiki:acktest3',
                 'user' => 'regular',
                 'ack' => '1560805555',
+                'lastmod' => '1560805365',
             ],
             [
                 'page' => 'dokuwiki:acktest3',
                 'user' => 'max',
                 'ack' => '1560805000',
+                'lastmod' => '1560805365',
             ],
         ];
         $this->assertEquals($expected, $actual);
@@ -89,6 +92,7 @@ class helper_plugin_acknowledge_test extends DokuWikiTest
                 'page' => 'dokuwiki:acktest1',
                 'user' => 'max',
                 'ack' => '1560805770',
+                'lastmod' => '1560805365',
             ],
         ];
         $this->assertEquals($expected, $actual);

@@ -376,9 +376,10 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         if (!$sqlite) return false;
 
         $sql = '
-            SELECT page, user, max(ack) AS ack
-              FROM acks
-          GROUP BY user,page
+            SELECT A.page, A.user, B.lastmod, max(A.ack) AS ack
+              FROM acks A, pages B
+             WHERE A.page = B.page
+          GROUP BY A.user, A.page
           ORDER BY ack DESC
              LIMIT ?
               ';
