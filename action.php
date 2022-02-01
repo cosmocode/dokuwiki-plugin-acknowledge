@@ -86,9 +86,8 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
             $html .= '</div>';
         } elseif ($helper->isUserAssigned($id, $user, $USERINFO['grps'])) {
             $form = new Form(['id' => 'ackForm']);
-            $form->addCheckbox('ack')->attr('required', 'required');
-            $form->addLabel($this->getLang('ackText'), 'ack');
-            $form->addHTML('<br><button type="submit" name="acksubmit" id="ack-submit">'. $this->getLang('ackButton') .'</button>');
+            $form->addCheckbox('ack', $this->getLang('ackText'))->attr('required', 'required');
+            $form->addHTML('<br><button type="submit" name="acksubmit" id="ack-submit">' . $this->getLang('ackButton') . '</button>');
             $html .= '<div>';
 
             $html .= $this->getLang('ackRequired') . '<br>';
