@@ -6,7 +6,6 @@
  * @author  Andreas Gohr, Anna Dabrowska <dokuwiki@cosmocode.de>
  */
 
-
 class helper_plugin_acknowledge extends DokuWiki_Plugin
 {
 
@@ -119,7 +118,6 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sqlite->query($sql, $page);
     }
 
-
     /**
      * Is the given user one of the assignees for this page
      *
@@ -132,7 +130,6 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     {
         $sqlite = $this->getDB();
         if (!$sqlite) return false;
-
 
         $sql = "SELECT assignee FROM assignments WHERE page = ?";
         $result = $sqlite->query($sql, $page);
@@ -242,17 +239,54 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     }
 
     /**
-     * Returns all acknowledgements
+     * Get all pages a user needs to acknowledge and the last acknowledge date
      *
+     * @param string $user
+     * @param array $groups
      * @return array|bool
      */
-    public function getAcknowledgements()
+    public function getUserAcknowledgements($user, $groups)
     {
         $sqlite = $this->getDB();
         if (!$sqlite) return false;
 
-        $sql = 'SELECT page, user, max(ack) AS ack FROM acks GROUP BY user,page ORDER BY ack DESC';
-        $result = $sqlite->query($sql);
+        $sql = "SELECT A.page, A.assignee, B.lastmod, C.user, MAX(C.ack) AS ack
+                  FROM assignments A
+                  JOIN pages B
+                    ON A.page = B.page
+             LEFT JOIN acks C
+                    ON A.page = C.page AND C.user = ?
+                 WHERE AUTH_ISMEMBER(A.assignee, ? , ?)
+            GROUP BY A.page
+            ORDER BY A.page
+            ";
+
+        $result = $sqlite->query($sql, $user, $user, implode('///', $groups));
+        $assignments = $sqlite->res2arr($result);
+        $sqlite->res_close($result);
+
+        return $assignments;
+    }
+
+    /**
+     * Returns all acknowledgements
+     *
+     * @param int $limit maximum number of results
+     * @return array|bool
+     */
+    public function getAcknowledgements($limit = 100)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+
+        $sql = '
+            SELECT page, user, max(ack) AS ack
+              FROM acks
+          GROUP BY user,page
+          ORDER BY ack DESC
+             LIMIT ?
+              ';
+        $result = $sqlite->query($sql, $limit);
         $acknowledgements = $sqlite->res2arr($result);
         $sqlite->res_close($result);
 
