@@ -76,23 +76,24 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
             $helper->saveAcknowledgement($id, $user);
         }
 
-        $html = '';
-
         $ack = $helper->hasUserAcknowledged($id, $user);
+
+        $html = '<div class="' . ($ack ? 'ack' : 'noack') . '">';
+        $html .= inlineSVG(__DIR__ . '/admin.svg');
+        $html .= '</div>';
+
         if ($ack) {
 
             $html .= '<div>';
-            $html .= $this->getLang('ackGranted') . sprintf('%s', dformat($ack));
+            $html .= '<h4>';
+            $html .= $this->getLang('ackOk');
+            $html .= '</h4>';
+            $html .= sprintf($this->getLang('ackGranted'), dformat($ack));
             $html .= '</div>';
         } elseif ($helper->isUserAssigned($id, $user, $USERINFO['grps'])) {
-            $form = new Form(['id' => 'ackForm']);
-            $form->addCheckbox('ack')->attr('required', 'required');
-            $form->addLabel($this->getLang('ackText'), 'ack');
-            $form->addHTML('<br><button type="submit" name="acksubmit" id="ack-submit">'. $this->getLang('ackButton') .'</button>');
+
             $html .= '<div>';
-
-            $html .= $this->getLang('ackRequired') . '<br>';
-
+            $html .= '<h4>' . $this->getLang('ackRequired') . '</h4>';
             $latest = $helper->getLatestUserAcknowledgement($id, $user);
             if ($latest) {
                 $html .= '<a href="'
@@ -100,6 +101,10 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
                     . sprintf($this->getLang('ackDiff'), dformat($latest))
                     . '</a><br>';
             }
+
+            $form = new Form(['id' => 'ackForm']);
+            $form->addCheckbox('ack', $this->getLang('ackText'))->attr('required', 'required');
+            $form->addHTML('<br><button type="submit" name="acksubmit" id="ack-submit">' . $this->getLang('ackButton') . '</button>');
 
             $html .= $form->toHTML();
             $html .= '</div>';

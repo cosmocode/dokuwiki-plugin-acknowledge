@@ -1,12 +1,13 @@
 <?php
+
+use dokuwiki\Extension\AuthPlugin;
+
 /**
  * DokuWiki Plugin acknowledge (Helper Component)
  *
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author  Andreas Gohr, Anna Dabrowska <dokuwiki@cosmocode.de>
  */
-
-
 class helper_plugin_acknowledge extends DokuWiki_Plugin
 {
 
@@ -119,7 +120,6 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sqlite->query($sql, $page);
     }
 
-
     /**
      * Is the given user one of the assignees for this page
      *
@@ -132,7 +132,6 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     {
         $sqlite = $this->getDB();
         if (!$sqlite) return false;
-
 
         $sql = "SELECT assignee FROM assignments WHERE page = ?";
         $result = $sqlite->query($sql, $page);
@@ -242,17 +241,149 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     }
 
     /**
-     * Returns all acknowledgements
+     * Get all pages a user needs to acknowledge and the last acknowledge date
      *
+     * @param string $user
+     * @param array $groups
      * @return array|bool
      */
-    public function getAcknowledgements()
+    public function getUserAcknowledgements($user, $groups)
     {
         $sqlite = $this->getDB();
         if (!$sqlite) return false;
 
-        $sql = 'SELECT page, user, max(ack) AS ack FROM acks GROUP BY user,page ORDER BY ack DESC';
-        $result = $sqlite->query($sql);
+        $sql = "SELECT A.page, A.assignee, B.lastmod, C.user, MAX(C.ack) AS ack
+                  FROM assignments A
+                  JOIN pages B
+                    ON A.page = B.page
+             LEFT JOIN acks C
+                    ON A.page = C.page AND C.user = ?
+                 WHERE AUTH_ISMEMBER(A.assignee, ? , ?)
+            GROUP BY A.page
+            ORDER BY A.page
+            ";
+
+        $result = $sqlite->query($sql, $user, $user, implode('///', $groups));
+        $assignments = $sqlite->res2arr($result);
+        $sqlite->res_close($result);
+
+        return $assignments;
+    }
+
+    /**
+     * Resolve names of users assigned to a given page
+     *
+     * This can be slow on huge user bases!
+     *
+     * @param string $page
+     * @return array|false
+     */
+    public function getPageAssignees($page)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+        /** @var AuthPlugin $auth */
+        global $auth;
+
+        $sql = "SELECT assignee
+                  FROM assignments
+                 WHERE page = ?";
+        $result = $sqlite->query($sql, $page);
+        $assignments = $sqlite->res2single($result);
+        $sqlite->res_close($result);
+
+        $users = [];
+        foreach (explode(',', $assignments) as $item) {
+            $item = trim($item);
+            if ($item === '') continue;
+            if ($item[0] == '@') {
+                $users = array_merge(
+                    $users,
+                    array_keys($auth->retrieveUsers(0, 0, ['grps' => substr($item, 1)]))
+                );
+            } else {
+                $users[] = $item;
+            }
+        }
+
+        return array_unique($users);
+    }
+
+    /**
+     * Get ack status for all assigned users of a given page
+     *
+     * This can be slow!
+     *
+     * @param string $page
+     * @return array|false
+     */
+    public function getPageAcknowledgements($page)
+    {
+        $users = $this->getPageAssignees($page);
+        if ($users === false) return false;
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+
+        $ulist = $sqlite->quote_and_join($users);
+        $sql = "SELECT A.page, A.lastmod, B.user, MAX(B.ack) AS ack
+                  FROM pages A
+             LEFT JOIN acks B
+                    ON A.page = B.page
+                   AND B.user IN ($ulist)
+                WHERE  A.page = ?
+              GROUP BY A.page, B.user
+                 ";
+        $result = $sqlite->query($sql, $page);
+        $acknowledgements = $sqlite->res2arr($result);
+        $sqlite->res_close($result);
+
+        // there should be at least one result, unless the page is unknown
+        if (!count($acknowledgements)) return false;
+
+        $baseinfo = [
+            'page' => $acknowledgements[0]['page'],
+            'lastmod' => $acknowledgements[0]['lastmod'],
+            'user' => null,
+            'ack' => null,
+        ];
+
+        // fill up the result with all users that never acknowledged the page
+        $combined = [];
+        foreach ($acknowledgements as $ack) {
+            if ($ack['user'] !== null) {
+                $combined[$ack['user']] = $ack;
+            }
+        }
+        foreach ($users as $user) {
+            if (!isset($combined[$user])) {
+                $combined[$user] = array_merge($baseinfo, ['user' => $user]);
+            }
+        }
+
+        ksort($combined);
+        return array_values($combined);
+    }
+
+    /**
+     * Returns all acknowledgements
+     *
+     * @param int $limit maximum number of results
+     * @return array|bool
+     */
+    public function getAcknowledgements($limit = 100)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+
+        $sql = '
+            SELECT A.page, A.user, B.lastmod, max(A.ack) AS ack
+              FROM acks A, pages B
+             WHERE A.page = B.page
+          GROUP BY A.user, A.page
+          ORDER BY ack DESC
+             LIMIT ?
+              ';
+        $result = $sqlite->query($sql, $limit);
         $acknowledgements = $sqlite->res2arr($result);
         $sqlite->res_close($result);
 
