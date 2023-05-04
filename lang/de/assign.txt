@@ -1,0 +1,11 @@
+====== Bestätigungen: Zuweisung ======
+
+Hier können Zuweisungen von Personen und Gruppen zu bestimmten Seiten automatisch definiert werden.
+Wenn eine Seite zu einem der Muster passt, werden die Personen und Gruppen zugewiesen.
+
+  * Namensräume ohne Unter-Namensräume werden als ''<nowiki>namespace:*</nowiki>'' zugewiesen.
+  * Namensräume mit Unter-Namensräumen werden als ''<nowiki>namespace:**</nowiki>'' zugewiesen.
+  * Seiten wie üblich mit ihrer vollständigen Seiten-ID.
+  * Reguläre Ausdrücke, die mit ''/'' beginnen und enden - werden gegen eine vollständige Seiten-ID mit vorangestelltem '':'' verglichen.
+
+Zuweisungen werden entweder durch Benutzernamen oder ''@''-präfixierte Gruppennamen definiert. Mehrere Zuweisungen werden durch Kommas '','' getrennt.

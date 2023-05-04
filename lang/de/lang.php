@@ -6,7 +6,8 @@
  */
 
 // menu entry for admin plugins
-$lang['menu'] = 'Bestätigungsüberblick';
+$lang['menu'] = 'Bestätigungen: Überblick';
+$lang['menu_assign'] = 'Bestätigungen: Zuweisungen';
 
 // custom language strings for the plugin
 $lang['ackRequired'] = 'Sie müssen diese Seite noch bestätigen';
@@ -24,5 +25,10 @@ $lang['overviewHistory'] = 'Sie können ältere Bestätigungen über die Datenba
 $lang['count'] = 'Nutzer %s hat %d von %d Seiten bestätigt.';
 $lang['yes'] = 'ja';
 $lang['home'] = 'Neueste Bestätigungen';
+
+$lang['pattern'] = 'Seiten-Muster';
+$lang['assignees'] = 'Zuweisung';
+$lang['save'] = 'Speichern';
+
 
 $lang['error sqlite plugin missing'] = 'Das sqlite plugin ist nicht installiert';
