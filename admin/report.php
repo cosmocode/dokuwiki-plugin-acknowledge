@@ -43,22 +43,29 @@ class admin_plugin_acknowledge_report extends DokuWiki_Admin_Plugin
     /**
      * Show which users have or need ot acknowledge a specific page
      *
-     * @param $page
+     * @param string $pattern A page assignment pattern
      */
-    protected function htmlPageStatus($page)
+    protected function htmlPageStatus($pattern)
     {
         global $lang;
 
         /** @var helper_plugin_acknowledge $helper */
         $helper = plugin_load('helper', 'acknowledge');
 
-        $acknowledgements = $helper->getPageAcknowledgements($page);
+        $pages = $helper->getPagesMatchingPattern($pattern);
+        $acknowledgements = [];
+
+        foreach ($pages as $pattern) {
+            $acknowledgements = array_merge($acknowledgements, $helper->getPageAcknowledgements($pattern));
+            if(count($acknowledgements) > 1000) break; // don't show too many
+        }
+
         if (!$acknowledgements) {
             echo '<p>' . $lang['nothingfound'] . '</p>';
             return;
         }
 
-        $count = $this->htmlTable($acknowledgements);
+        $this->htmlTable($acknowledgements);
     }
 
     /**
@@ -119,7 +126,7 @@ class admin_plugin_acknowledge_report extends DokuWiki_Admin_Plugin
         $form = new dokuwiki\Form\Form(['method' => 'GET']);
         $form->setHiddenField('do', 'admin');
         $form->setHiddenField('page', 'acknowledge_report');
-        $form->addTextInput('pg', $this->getLang('overviewPage'))->val($ID);
+        $form->addTextInput('pg', $this->getLang('pattern'))->val($ID);
         $form->addButton('', '>');
         echo $form->toHTML();
         echo '</nav>';
