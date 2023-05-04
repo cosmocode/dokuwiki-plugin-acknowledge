@@ -11,6 +11,8 @@ use dokuwiki\Extension\AuthPlugin;
 class helper_plugin_acknowledge extends DokuWiki_Plugin
 {
 
+    // region Database Management
+
     /**
      * @return helper_plugin_sqlite|null
      */
@@ -57,6 +59,71 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     }
 
     /**
+     * Fills the page index with all unknown pages from the fulltext index
+     * @return void
+     */
+    public function updatePageIndex()
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return;
+
+        $pages = idx_getIndex('page', '');
+        $sql = "INSERT OR IGNORE INTO pages (page, lastmod) VALUES (?,?)";
+
+        $sqlite->query('BEGIN TRANSACTION');
+        foreach ($pages as $page) {
+            $page = trim($page);
+            $lastmod = @filemtime(wikiFN($page));
+            if ($lastmod) {
+                $sqlite->query($sql, $page, $lastmod);
+            }
+        }
+        $sqlite->query('COMMIT TRANSACTION');
+    }
+
+    /**
+     * Check if the given pattern matches the given page
+     *
+     * @param string $pattern the pattern to check against
+     * @param string $page the cleaned pageid to check
+     * @return bool
+     */
+    public function matchPagePattern($pattern, $page)
+    {
+        if (trim($pattern, ':') == '**') return true; // match all
+
+        // regex patterns
+        if ($pattern[0] == '/') {
+            return (bool)preg_match($pattern, ":$page");
+        }
+
+        $pns = ':' . getNS($page) . ':';
+
+        $ans = ':' . cleanID($pattern) . ':';
+        if (substr($pattern, -2) == '**') {
+            // upper namespaces match
+            if (strpos($pns, $ans) === 0) {
+                return true;
+            }
+        } elseif (substr($pattern, -1) == '*') {
+            // namespaces match exact
+            if ($ans == $pns) {
+                return true;
+            }
+        } else {
+            // exact match
+            if (cleanID($pattern) == $page) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // endregion
+    // region Page Data
+
+    /**
      * Delete a page
      *
      * Cascades to delete all assigned data, etc.
@@ -95,6 +162,9 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sqlite->query($sql, $page, $lastmod);
     }
 
+    // endregion
+    // region Assignments
+
     /**
      * Clears direct assignments for a page
      *
@@ -110,127 +180,14 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     }
 
     /**
-     * Get all the assignment patterns
-     * @return array (pattern => assignees)
-     */
-    public function getAssignmentPatterns()
-    {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return [];
-
-        $sql = "SELECT pattern, assignees FROM assignments_patterns";
-        $result = $sqlite->query($sql);
-        $patterns = $sqlite->res2arr($result);
-        $sqlite->res_close($result);
-
-        return array_combine(
-            array_column($patterns, 'pattern'),
-            array_column($patterns, 'assignees')
-        );
-    }
-
-    /**
-     * Save new assignment patterns
-     *
-     * This resaves all patterns and reapplies them
-     *
-     * @param array $patterns (pattern => assignees)
-     */
-    public function saveAssignmentPatterns($patterns) {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return;
-
-        $sqlite->query('BEGIN TRANSACTION');
-
-        /** @noinsp0ection SqlWithoutWhere Remove all assignments */
-        $sql = "UPDATE assignments SET autoassignees = ''";
-        $sqlite->query($sql);
-
-        /** @noinspection SqlWithoutWhere Remove all patterns */
-        $sql = "DELETE FROM assignments_patterns";
-        $sqlite->query($sql);
-
-        // insert new patterns and gather affected pages
-        $pages = [];
-
-        $sql = "REPLACE INTO assignments_patterns (pattern, assignees) VALUES (?,?)";
-        foreach ($patterns as $pattern => $assignees) {
-            $pattern = trim($pattern);
-            $assignees = trim($assignees);
-            if (!$pattern || !$assignees) continue;
-            $sqlite->query($sql, $pattern, $assignees);
-
-            // patterns may overlap, so we need to gather all affected pages first
-            $affectedPages = $this->getPagesMatchingPattern($pattern);
-            foreach ($affectedPages as $page) {
-                if(isset($pages[$page])) {
-                    $pages[$page] .= ',' . $assignees;
-                } else {
-                    $pages[$page] = $assignees;
-                }
-            }
-        }
-
-        $sql = "INSERT INTO assignments (page, autoassignees) VALUES (?, ?)
-                ON CONFLICT(page)
-                DO UPDATE SET autoassignees = ?";
-        foreach ($pages as $page => $assignees) {
-            // remove duplicates and empty entries
-            $assignees = join(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
-            $sqlite->query($sql, $page, $assignees, $assignees);
-        }
-
-        $sqlite->query('COMMIT TRANSACTION');
-    }
-
-    /**
-     * Get all known pages that match the given pattern
-     *
-     * @param $pattern
-     * @return string[]
-     */
-    public function getPagesMatchingPattern($pattern) {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return [];
-
-        $sql = "SELECT page FROM pages WHERE MATCHES_PAGE_PATTERN(?, page)";
-        $result = $sqlite->query($sql, $pattern);
-        $pages = $sqlite->res2arr($result);
-        $sqlite->res_close($result);
-
-        return array_column($pages, 'page');
-    }
-
-    /**
-     * Fills the page index with all unknown pages from the fulltext index
-     * @return void
-     */
-    public function updatePageIndex() {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return;
-
-        $pages = idx_getIndex('page','');
-        $sql = "INSERT OR IGNORE INTO pages (page, lastmod) VALUES (?,?)";
-
-        $sqlite->query('BEGIN TRANSACTION');
-        foreach ($pages as $page) {
-            $page = trim($page);
-            $lastmod = @filemtime(wikiFN($page));
-            if($lastmod) {
-                $sqlite->query($sql, $page, $lastmod);
-            }
-        }
-        $sqlite->query('COMMIT TRANSACTION');
-    }
-
-    /**
      * Set assignees for a given page as manually specified
      *
      * @param string $page Page ID
      * @param string $assignees
      * @return void
      */
-    public function setPageAssignees($page, $assignees) {
+    public function setPageAssignees($page, $assignees)
+    {
         $sqlite = $this->getDB();
         if (!$sqlite) return;
 
@@ -242,7 +199,6 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
 
     /**
      * Set assignees for a given page from the patterns
-
      * @param string $page Page ID
      */
     public function setAutoAssignees($page)
@@ -290,6 +246,174 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $assignees = $row['pageassignees'] . ',' . $row['autoassignees'];
         return auth_isMember($assignees, $user, $groups);
     }
+
+    /**
+     * Fetch all assignments for a given user, with additional page information,
+     * filtering already granted acknowledgements.
+     *
+     * @param string $user
+     * @param array $groups
+     * @return array|bool
+     */
+    public function getUserAssignments($user, $groups)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+
+        $sql = "SELECT A.page, A.pageassignees, A.autoassignees, B.lastmod, C.user, C.ack FROM assignments A
+                JOIN pages B
+                ON A.page = B.page
+                LEFT JOIN acks C
+                ON A.page = C.page AND ( (C.user = ? AND C.ack > B.lastmod) )
+                WHERE AUTH_ISMEMBER(A.pageassignees || ',' || A.autoassignees , ? , ?)
+                AND ack IS NULL";
+
+        $result = $sqlite->query($sql, $user, $user, implode('///', $groups));
+        $assignments = $sqlite->res2arr($result);
+        $sqlite->res_close($result);
+
+        return $assignments;
+    }
+
+
+    /**
+     * Resolve names of users assigned to a given page
+     *
+     * This can be slow on huge user bases!
+     *
+     * @param string $page
+     * @return array|false
+     */
+    public function getPageAssignees($page)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return false;
+        /** @var AuthPlugin $auth */
+        global $auth;
+
+        $sql = "SELECT pageassignees || ',' || autoassignees AS 'assignments'
+                  FROM assignments
+                 WHERE page = ?";
+        $result = $sqlite->query($sql, $page);
+        $assignments = $sqlite->res2single($result);
+        $sqlite->res_close($result);
+
+        $users = [];
+        foreach (explode(',', $assignments) as $item) {
+            $item = trim($item);
+            if ($item === '') continue;
+            if ($item[0] == '@') {
+                $users = array_merge(
+                    $users,
+                    array_keys($auth->retrieveUsers(0, 0, ['grps' => substr($item, 1)]))
+                );
+            } else {
+                $users[] = $item;
+            }
+        }
+
+        return array_unique($users);
+    }
+
+    // endregion
+    // region Assignment Patterns
+
+    /**
+     * Get all the assignment patterns
+     * @return array (pattern => assignees)
+     */
+    public function getAssignmentPatterns()
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return [];
+
+        $sql = "SELECT pattern, assignees FROM assignments_patterns";
+        $result = $sqlite->query($sql);
+        $patterns = $sqlite->res2arr($result);
+        $sqlite->res_close($result);
+
+        return array_combine(
+            array_column($patterns, 'pattern'),
+            array_column($patterns, 'assignees')
+        );
+    }
+
+    /**
+     * Save new assignment patterns
+     *
+     * This resaves all patterns and reapplies them
+     *
+     * @param array $patterns (pattern => assignees)
+     */
+    public function saveAssignmentPatterns($patterns)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return;
+
+        $sqlite->query('BEGIN TRANSACTION');
+
+        /** @noinsp0ection SqlWithoutWhere Remove all assignments */
+        $sql = "UPDATE assignments SET autoassignees = ''";
+        $sqlite->query($sql);
+
+        /** @noinspection SqlWithoutWhere Remove all patterns */
+        $sql = "DELETE FROM assignments_patterns";
+        $sqlite->query($sql);
+
+        // insert new patterns and gather affected pages
+        $pages = [];
+
+        $sql = "REPLACE INTO assignments_patterns (pattern, assignees) VALUES (?,?)";
+        foreach ($patterns as $pattern => $assignees) {
+            $pattern = trim($pattern);
+            $assignees = trim($assignees);
+            if (!$pattern || !$assignees) continue;
+            $sqlite->query($sql, $pattern, $assignees);
+
+            // patterns may overlap, so we need to gather all affected pages first
+            $affectedPages = $this->getPagesMatchingPattern($pattern);
+            foreach ($affectedPages as $page) {
+                if (isset($pages[$page])) {
+                    $pages[$page] .= ',' . $assignees;
+                } else {
+                    $pages[$page] = $assignees;
+                }
+            }
+        }
+
+        $sql = "INSERT INTO assignments (page, autoassignees) VALUES (?, ?)
+                ON CONFLICT(page)
+                DO UPDATE SET autoassignees = ?";
+        foreach ($pages as $page => $assignees) {
+            // remove duplicates and empty entries
+            $assignees = join(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
+            $sqlite->query($sql, $page, $assignees, $assignees);
+        }
+
+        $sqlite->query('COMMIT TRANSACTION');
+    }
+
+    /**
+     * Get all known pages that match the given pattern
+     *
+     * @param $pattern
+     * @return string[]
+     */
+    public function getPagesMatchingPattern($pattern)
+    {
+        $sqlite = $this->getDB();
+        if (!$sqlite) return [];
+
+        $sql = "SELECT page FROM pages WHERE MATCHES_PAGE_PATTERN(?, page)";
+        $result = $sqlite->query($sql, $pattern);
+        $pages = $sqlite->res2arr($result);
+        $sqlite->res_close($result);
+
+        return array_column($pages, 'page');
+    }
+
+    // endregion
+    // region Acknowledgements
 
     /**
      * Has the given user acknowledged the given page?
@@ -363,34 +487,6 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
     }
 
     /**
-     * Fetch all assignments for a given user, with additional page information,
-     * filtering already granted acknowledgements.
-     *
-     * @param string $user
-     * @param array $groups
-     * @return array|bool
-     */
-    public function getUserAssignments($user, $groups)
-    {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return false;
-
-        $sql = "SELECT A.page, A.pageassignees, A.autoassignees, B.lastmod, C.user, C.ack FROM assignments A
-                JOIN pages B
-                ON A.page = B.page
-                LEFT JOIN acks C
-                ON A.page = C.page AND ( (C.user = ? AND C.ack > B.lastmod) )
-                WHERE AUTH_ISMEMBER(A.pageassignees || ',' || A.autoassignees , ? , ?)
-                AND ack IS NULL";
-
-        $result = $sqlite->query($sql, $user, $user, implode('///', $groups));
-        $assignments = $sqlite->res2arr($result);
-        $sqlite->res_close($result);
-
-        return $assignments;
-    }
-
-    /**
      * Get all pages a user needs to acknowledge and the last acknowledge date
      *
      * @param string $user
@@ -418,45 +514,6 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sqlite->res_close($result);
 
         return $assignments;
-    }
-
-    /**
-     * Resolve names of users assigned to a given page
-     *
-     * This can be slow on huge user bases!
-     *
-     * @param string $page
-     * @return array|false
-     */
-    public function getPageAssignees($page)
-    {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return false;
-        /** @var AuthPlugin $auth */
-        global $auth;
-
-        $sql = "SELECT pageassignees || ',' || autoassignees AS 'assignments'
-                  FROM assignments
-                 WHERE page = ?";
-        $result = $sqlite->query($sql, $page);
-        $assignments = $sqlite->res2single($result);
-        $sqlite->res_close($result);
-
-        $users = [];
-        foreach (explode(',', $assignments) as $item) {
-            $item = trim($item);
-            if ($item === '') continue;
-            if ($item[0] == '@') {
-                $users = array_merge(
-                    $users,
-                    array_keys($auth->retrieveUsers(0, 0, ['grps' => substr($item, 1)]))
-                );
-            } else {
-                $users[] = $item;
-            }
-        }
-
-        return array_unique($users);
     }
 
     /**
@@ -540,43 +597,6 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         return $acknowledgements;
     }
 
-    /**
-     * Check if the given pattern matches the given page
-     *
-     * @param string $pattern the pattern to check against
-     * @param string $page the cleaned pageid to check
-     * @return bool
-     */
-    public function matchPagePattern($pattern, $page)
-    {
-        if (trim($pattern, ':') == '**') return true; // match all
-
-        // regex patterns
-        if ($pattern[0] == '/') {
-            return (bool)preg_match($pattern, ":$page");
-        }
-
-        $pns = ':' . getNS($page) . ':';
-
-        $ans = ':' . cleanID($pattern) . ':';
-        if (substr($pattern, -2) == '**') {
-            // upper namespaces match
-            if (strpos($pns, $ans) === 0) {
-                return true;
-            }
-        } elseif (substr($pattern, -1) == '*') {
-            // namespaces match exact
-            if ($ans == $pns) {
-                return true;
-            }
-        } else {
-            // exact match
-            if (cleanID($pattern) == $page) {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    // endregion
 }
 
