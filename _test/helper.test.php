@@ -36,7 +36,7 @@ class helper_plugin_acknowledge_test extends DokuWikiTest
             ('dokuwiki:acktest3', 1560805365)";
         $this->db->query($pages);
 
-        $assignments = "REPLACE INTO assignments(page,assignee)
+        $assignments = "REPLACE INTO assignments(page,pageassignees)
             VALUES ('dokuwiki:acktest1', 'regular, @super'),
             ('dokuwiki:acktest2', '@super'),
             ('dokuwiki:acktest3', '@user')";
@@ -107,7 +107,8 @@ class helper_plugin_acknowledge_test extends DokuWikiTest
         $expected = [
             [
                 'page' => 'dokuwiki:acktest1',
-                'assignee' => 'regular, @super',
+                'pageassignees' => 'regular, @super',
+                'autoassignees' => '',
                 'lastmod' => '1560805365',
                 'user' => null,
                 'ack' => null,
@@ -119,14 +120,16 @@ class helper_plugin_acknowledge_test extends DokuWikiTest
         $expected = [
             [
                 'page' => 'dokuwiki:acktest2',
-                'assignee' => '@super',
+                'pageassignees' => '@super',
+                'autoassignees' => '',
                 'lastmod' => '1560805365',
                 'user' => null,
                 'ack' => null,
             ],
             [
                 'page' => 'dokuwiki:acktest3',
-                'assignee' => '@user',
+                'pageassignees' => '@user',
+                'autoassignees' => '',
                 'lastmod' => '1560805365',
                 'user' => null,
                 'ack' => null,
@@ -141,21 +144,24 @@ class helper_plugin_acknowledge_test extends DokuWikiTest
         $expected = [
             [
                 'page' => 'dokuwiki:acktest1',
-                'assignee' => 'regular, @super',
+                'pageassignees' => 'regular, @super',
+                'autoassignees' => '',
                 'lastmod' => '1560805365',
                 'user' => 'max',
                 'ack' => '1560805770',
             ],
             [
                 'page' => 'dokuwiki:acktest2',
-                'assignee' => '@super',
+                'pageassignees' => '@super',
+                'autoassignees' => '',
                 'lastmod' => '1560805365',
                 'user' => null,
                 'ack' => null,
             ],
             [
                 'page' => 'dokuwiki:acktest3',
-                'assignee' => '@user',
+                'pageassignees' => '@user',
+                'autoassignees' => '',
                 'lastmod' => '1560805365',
                 'user' => 'max',
                 'ack' => '1560805000',
