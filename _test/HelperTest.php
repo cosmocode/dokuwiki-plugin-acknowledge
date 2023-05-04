@@ -1,24 +1,29 @@
 <?php
 
+
+namespace dokuwiki\plugin\acknowledge\test;
+
+use DokuWikiTest;
+
 /**
  * Helper tests for the acknowledge plugin
  *
  * @group plugin_acknowledge
  * @group plugins
  */
-class helper_plugin_acknowledge_test extends DokuWikiTest
+class HelperTest extends DokuWikiTest
 {
     /** @var array */
     protected $pluginsEnabled = ['acknowledge', 'sqlite'];
     /** @var \helper_plugin_acknowledge $helper */
     protected $helper;
-    /** @var helper_plugin_sqlite */
+    /** @var \helper_plugin_sqlite */
     protected $db;
 
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
-        /** @var auth_plugin_authplain $auth */
+        /** @var \auth_plugin_authplain $auth */
         global $auth;
         $auth->createUser('max', 'none', 'max', 'max@example.com', ['super']);
     }
