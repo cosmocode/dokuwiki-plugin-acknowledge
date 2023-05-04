@@ -65,7 +65,7 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
 
     /**
      * Handle Migration events
-     * 
+     *
      * @param Doku_Event $event
      * @param $param
      * @return void
@@ -73,10 +73,10 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
     public function handleUpgrade(Doku_Event $event, $param)
     {
         if ($event->data['sqlite']->getAdapter()->getDbname() !== 'acknowledgement') {
-             return;
+            return;
         }
         $to = $event->data['to'];
-        if($to !== 3) return; // only handle upgrade to version 3
+        if ($to !== 3) return; // only handle upgrade to version 3
 
         /** @var helper_plugin_acknowledge $helper */
         $helper = plugin_load('helper', 'acknowledge');
@@ -100,6 +100,11 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
         /** @var helper_plugin_acknowledge $helper */
         $helper = plugin_load('helper', 'acknowledge');
 
+        // only display for users assigned to the page
+        if (!$helper->isUserAssigned($id, $user, $USERINFO['grps'])) {
+            return '';
+        }
+
         if ($ackSubmitted) {
             $helper->saveAcknowledgement($id, $user);
         }
@@ -111,15 +116,13 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
         $html .= '</div>';
 
         if ($ack) {
-
             $html .= '<div>';
             $html .= '<h4>';
             $html .= $this->getLang('ackOk');
             $html .= '</h4>';
             $html .= sprintf($this->getLang('ackGranted'), dformat($ack));
             $html .= '</div>';
-        } elseif ($helper->isUserAssigned($id, $user, $USERINFO['grps'])) {
-
+        } else {
             $html .= '<div>';
             $html .= '<h4>' . $this->getLang('ackRequired') . '</h4>';
             $latest = $helper->getLatestUserAcknowledgement($id, $user);
