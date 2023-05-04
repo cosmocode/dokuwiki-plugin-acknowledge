@@ -8,35 +8,21 @@ use dokuwiki\Extension\AuthPlugin;
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author  Andreas Gohr, Anna Dabrowska <dokuwiki@cosmocode.de>
  */
-class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
+class admin_plugin_acknowledge_report extends DokuWiki_Admin_Plugin
 {
 
-    /**
-     * @return int sort number in admin menu
-     */
-    public function getMenuSort()
-    {
-        return 100;
-    }
-
-    /**
-     * @return bool true if only access for superuser, false is for superusers and moderators
-     */
+    /** @inheritdoc */
     public function forAdminOnly()
     {
         return false;
     }
 
-    /**
-     * Should carry out any processing required by the plugin.
-     */
+    /** @inheritdoc */
     public function handle()
     {
     }
 
-    /**
-     * Render HTML output, e.g. helpful text and a form
-     */
+    /** @inheritdoc */
     public function html()
     {
         global $INPUT;
@@ -125,14 +111,14 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
 
         $form = new dokuwiki\Form\Form(['method' => 'GET']);
         $form->setHiddenField('do', 'admin');
-        $form->setHiddenField('page', 'acknowledge');
+        $form->setHiddenField('page', 'acknowledge_report');
         $form->addTextInput('user', $this->getLang('overviewUser'));
         $form->addButton('', '>');
         echo $form->toHTML();
 
         $form = new dokuwiki\Form\Form(['method' => 'GET']);
         $form->setHiddenField('do', 'admin');
-        $form->setHiddenField('page', 'acknowledge');
+        $form->setHiddenField('page', 'acknowledge_report');
         $form->addTextInput('pg', $this->getLang('overviewPage'))->val($ID);
         $form->addButton('', '>');
         echo $form->toHTML();
@@ -183,7 +169,7 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
             $ID,
             [
                 'do' => 'admin',
-                'page' => 'acknowledge',
+                'page' => 'acknowledge_report',
             ]
         );
 
@@ -204,7 +190,7 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
             $ID,
             [
                 'do' => 'admin',
-                'page' => 'acknowledge',
+                'page' => 'acknowledge_report',
                 'user' => $user,
             ]
         );
@@ -226,12 +212,27 @@ class admin_plugin_acknowledge extends DokuWiki_Admin_Plugin
             $ID,
             [
                 'do' => 'admin',
-                'page' => 'acknowledge',
+                'page' => 'acknowledge_report',
                 'pg' => $page,
             ]
         );
 
         return '<a href="' . $url . '">' . hsc($page) . '</a>';
     }
-}
 
+    /** @inheritdoc */
+    public function getTOC()
+    {
+        global $ID;
+        return [
+            html_mktocitem(
+                wl($ID, ['do' => 'admin', 'page' => 'acknowledge_report']),
+                $this->getLang('menu'), 0, ''
+            ),
+            html_mktocitem(
+                wl($ID, ['do' => 'admin', 'page' => 'acknowledge_assign']),
+                $this->getLang('menu_assign'), 0, ''
+            ),
+        ];
+    }
+}

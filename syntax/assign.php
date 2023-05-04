@@ -48,7 +48,7 @@ class syntax_plugin_acknowledge_assign extends DokuWiki_Syntax_Plugin
         if ($mode === 'metadata') {
             /** @var helper_plugin_acknowledge $helper */
             $helper = plugin_load('helper', 'acknowledge');
-            $helper->setAssignees($ID, $data['assignees']);
+            $helper->setPageAssignees($ID, $data['assignees']);
             return true;
         }
 

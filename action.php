@@ -16,6 +16,7 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
     {
         $controller->register_hook('COMMON_WIKIPAGE_SAVE', 'AFTER', $this, 'handlePageSave');
         $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handleAjax');
+        $controller->register_hook('PLUGIN_SQLITE_DATABASE_UPGRADE', 'AFTER', $this, 'handleUpgrade');
     }
 
     /**
@@ -23,7 +24,7 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
      *
      * Store page last modified date
      * Handle page deletions
-     * Remove assignments on page save, they get readded on rendering if needed
+     * Handle page creations
      *
      * @param Doku_Event $event
      * @param $param
@@ -34,12 +35,19 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
         $helper = plugin_load('helper', 'acknowledge');
 
         if ($event->data['changeType'] === DOKU_CHANGE_TYPE_DELETE) {
-            $helper->removePage($event->data['id']);
+            $helper->removePage($event->data['id']); // this cascades to assignments
         } elseif ($event->data['changeType'] !== DOKU_CHANGE_TYPE_MINOR_EDIT) {
             $helper->storePageDate($event->data['id'], $event->data['newRevision'], $event->data['newContent']);
         }
 
-        $helper->clearAssignments($event->data['id']);
+        // Remove page assignees here because the syntax might have been removed
+        // they are readded on metadata rendering if still there
+        $helper->clearPageAssignments($event->data['id']);
+
+        if ($event->data['changeType'] === DOKU_CHANGE_TYPE_CREATE) {
+            // new pages need to have their auto assignments updated based on the existing patterns
+            $helper->setAutoAssignees($event->data['id']);
+        }
     }
 
     /**
@@ -53,6 +61,26 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
             $event->stopPropagation();
             $event->preventDefault();
         }
+    }
+
+    /**
+     * Handle Migration events
+     * 
+     * @param Doku_Event $event
+     * @param $param
+     * @return void
+     */
+    public function handleUpgrade(Doku_Event $event, $param)
+    {
+        if ($event->data['sqlite']->getAdapter()->getDbname() !== 'acknowledgement') {
+             return;
+        }
+        $to = $event->data['to'];
+        if($to !== 3) return; // only handle upgrade to version 3
+
+        /** @var helper_plugin_acknowledge $helper */
+        $helper = plugin_load('helper', 'acknowledge');
+        $helper->updatePageIndex();
     }
 
     /**

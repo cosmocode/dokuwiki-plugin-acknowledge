@@ -6,7 +6,8 @@
  */
 
 // menu entry for admin plugins
- $lang['menu'] = 'Acknowledgements overview';
+ $lang['menu'] = 'Acknowledgement Overview';
+ $lang['menu_assign'] = 'Acknowledgement Assignments';
 
 // custom language strings for the plugin
 $lang['ackRequired'] = 'You need to acknowledge this page';
@@ -25,5 +26,9 @@ $lang['overviewHistory'] = 'You can access previous acknowledgments by querying 
 $lang['count'] = 'User %s signed %d of %d pages.';
 $lang['yes'] = 'yes';
 $lang['home'] = 'Newest Acknowledgements';
+
+$lang['pattern'] = 'Page Pattern';
+$lang['assignees'] = 'Assignees';
+$lang['save'] = 'Save';
 
 $lang['error sqlite plugin missing'] = 'The sqlite plugin is missing';
