@@ -36,6 +36,12 @@ jQuery(function () {
         {
             call: 'plugin_acknowledge_assign',
             id: JSINFO.id
+        },
+        response => {
+            // remove container if no data to show
+            if(response === '') {
+                $aContainer.remove();
+            }
         }
     );
 });
