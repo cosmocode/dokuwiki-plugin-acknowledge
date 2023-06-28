@@ -501,7 +501,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
      * @param string $page
      * @return array|false
      */
-    public function getPageAcknowledgements($page)
+    public function getPageAcknowledgements($page, $max=0)
     {
         $users = $this->getPageAssignees($page);
         if ($users === false) return false;
@@ -517,6 +517,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
                 WHERE  A.page = ?
               GROUP BY A.page, B.user
                  ";
+        if($max) $sql .= " LIMIT $max";
         $acknowledgements = $sqlite->queryAll($sql, $page);
 
         // there should be at least one result, unless the page is unknown

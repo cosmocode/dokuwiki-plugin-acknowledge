@@ -56,8 +56,12 @@ class admin_plugin_acknowledge_report extends DokuWiki_Admin_Plugin
         $acknowledgements = [];
 
         foreach ($pages as $pattern) {
-            $acknowledgements = array_merge($acknowledgements, $helper->getPageAcknowledgements($pattern));
-            if(count($acknowledgements) > 1000) break; // don't show too many
+            $acknowledgements = array_merge($acknowledgements, $helper->getPageAcknowledgements($pattern, 1000));
+            if(count($acknowledgements) > 1000) {
+                // don't show too many
+                msg($this->getLang('toomanyresults'), 0);
+                break;
+            }
         }
 
         if (!$acknowledgements) {

@@ -27,6 +27,8 @@ $lang['count'] = 'User %s signed %d of %d pages.';
 $lang['yes'] = 'yes';
 $lang['home'] = 'Newest Acknowledgements';
 
+$lang['toomanyresults'] = 'Too many results to show. Output limited.';
+
 $lang['pattern'] = 'Page Pattern';
 $lang['assignees'] = 'Assignees';
 $lang['save'] = 'Save';
