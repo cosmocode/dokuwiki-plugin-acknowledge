@@ -1,6 +1,8 @@
 <?php
 
+use dokuwiki\ErrorHandler;
 use dokuwiki\Extension\AuthPlugin;
+use dokuwiki\plugin\sqlite\SQLiteDB;
 
 /**
  * DokuWiki Plugin acknowledge (Helper Component)
@@ -11,38 +13,32 @@ use dokuwiki\Extension\AuthPlugin;
 class helper_plugin_acknowledge extends DokuWiki_Plugin
 {
 
+    protected $db;
+
     // region Database Management
 
     /**
-     * @return helper_plugin_sqlite|null
+     * Get SQLiteDB instance
+     *
+     * @return SQLiteDB|null
      */
     public function getDB()
     {
-        /** @var \helper_plugin_sqlite $sqlite */
-        $sqlite = plugin_load('helper', 'sqlite');
-        if ($sqlite === null) {
-            msg($this->getLang('error sqlite plugin missing'), -1);
-            return null;
+        if ($this->db === null) {
+            try {
+                $this->db = new SQLiteDB('acknowledgement', __DIR__ . '/db');
+
+                // register our custom functions
+                $this->db->getPdo()->sqliteCreateFunction('AUTH_ISMEMBER', [$this, 'auth_isMember'], -1);
+                $this->db->getPdo()->sqliteCreateFunction('MATCHES_PAGE_PATTERN', [$this, 'matchPagePattern'], 2);
+            } catch (\Exception $exception) {
+                if (defined('DOKU_UNITTEST')) throw new \RuntimeException('Could not load SQLite', 0, $exception);
+                ErrorHandler::logException($exception);
+                msg($this->getLang('error sqlite plugin missing'), -1);
+                return null;
+            }
         }
-        $sqlite->getAdapter()->setUseNativeAlter(true);
-        if (!$sqlite->init('acknowledgement', __DIR__ . '/db')) {
-            return null;
-        }
-
-        $this->registerUDF($sqlite);
-
-        return $sqlite;
-    }
-
-    /**
-     * Register user defined functions
-     *
-     * @param helper_plugin_sqlite $sqlite
-     */
-    protected function registerUDF($sqlite)
-    {
-        $sqlite->create_function('AUTH_ISMEMBER', [$this, 'auth_isMember'], -1);
-        $sqlite->create_function('MATCHES_PAGE_PATTERN', [$this, 'matchPagePattern'], 2);
+        return $this->db;
     }
 
     /**
@@ -70,15 +66,20 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $pages = idx_getIndex('page', '');
         $sql = "INSERT OR IGNORE INTO pages (page, lastmod) VALUES (?,?)";
 
-        $sqlite->query('BEGIN TRANSACTION');
+        $sqlite->getPdo()->beginTransaction();
         foreach ($pages as $page) {
             $page = trim($page);
             $lastmod = @filemtime(wikiFN($page));
             if ($lastmod) {
-                $sqlite->query($sql, $page, $lastmod);
+                try {
+                    $sqlite->exec($sql, [$page, $lastmod]);
+                } catch (\Exception $exception) {
+                    $sqlite->getPdo()->rollBack();
+                    throw $exception;
+                }
             }
         }
-        $sqlite->query('COMMIT TRANSACTION');
+        $sqlite->getPdo()->commit();
     }
 
     /**
@@ -136,7 +137,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         if (!$sqlite) return;
 
         $sql = "DELETE FROM pages WHERE page = ?";
-        $sqlite->query($sql, $page);
+        $sqlite->exec($sql, $page);
     }
 
     /**
@@ -159,7 +160,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         if (!$sqlite) return;
 
         $sql = "REPLACE INTO pages (page, lastmod) VALUES (?,?)";
-        $sqlite->query($sql, $page, $lastmod);
+        $sqlite->exec($sql, [$page, $lastmod]);
     }
 
     // endregion
@@ -176,7 +177,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         if (!$sqlite) return;
 
         $sql = "UPDATE assignments SET pageassignees = '' WHERE page = ?";
-        $sqlite->query($sql, $page);
+        $sqlite->exec($sql, $page);
     }
 
     /**
@@ -194,7 +195,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $assignees = join(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
 
         $sql = "REPLACE INTO assignments ('page', 'pageassignees') VALUES (?,?)";
-        $sqlite->query($sql, $page, $assignees);
+        $sqlite->exec($sql, [$page, $assignees]);
     }
 
     /**
@@ -223,7 +224,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
 
         // store the assignees
         $sql = "REPLACE INTO assignments ('page', 'autoassignees') VALUES (?,?)";
-        $sqlite->query($sql, $page, $assignees);
+        $sqlite->exec($sql, [$page, $assignees]);
     }
 
     /**
@@ -240,10 +241,8 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         if (!$sqlite) return false;
 
         $sql = "SELECT pageassignees,autoassignees FROM assignments WHERE page = ?";
-        $result = $sqlite->query($sql, $page);
-        $row = $sqlite->res2row($result);
-        $sqlite->res_close($result);
-        $assignees = $row['pageassignees'] . ',' . $row['autoassignees'];
+        $record = $sqlite->queryRecord($sql, $page);
+        $assignees = $record['pageassignees'] . ',' . $record['autoassignees'];
         return auth_isMember($assignees, $user, $groups);
     }
 
@@ -268,11 +267,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
                 WHERE AUTH_ISMEMBER(A.pageassignees || ',' || A.autoassignees , ? , ?)
                 AND ack IS NULL";
 
-        $result = $sqlite->query($sql, $user, $user, implode('///', $groups));
-        $assignments = $sqlite->res2arr($result);
-        $sqlite->res_close($result);
-
-        return $assignments;
+        return $sqlite->queryAll($sql, $user, $user, implode('///', $groups));
     }
 
 
@@ -294,9 +289,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sql = "SELECT pageassignees || ',' || autoassignees AS 'assignments'
                   FROM assignments
                  WHERE page = ?";
-        $result = $sqlite->query($sql, $page);
-        $assignments = $sqlite->res2single($result);
-        $sqlite->res_close($result);
+        $assignments = $sqlite->queryValue($sql, $page);
 
         $users = [];
         foreach (explode(',', $assignments) as $item) {
@@ -328,14 +321,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         if (!$sqlite) return [];
 
         $sql = "SELECT pattern, assignees FROM assignments_patterns";
-        $result = $sqlite->query($sql);
-        $patterns = $sqlite->res2arr($result);
-        $sqlite->res_close($result);
-
-        return array_combine(
-            array_column($patterns, 'pattern'),
-            array_column($patterns, 'assignees')
-        );
+        return $sqlite->queryKeyValueList($sql);
     }
 
     /**
@@ -350,47 +336,51 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sqlite = $this->getDB();
         if (!$sqlite) return;
 
-        $sqlite->query('BEGIN TRANSACTION');
+        $sqlite->getPdo()->beginTransaction();
+        try {
 
-        /** @noinsp0ection SqlWithoutWhere Remove all assignments */
-        $sql = "UPDATE assignments SET autoassignees = ''";
-        $sqlite->query($sql);
+            /** @noinspection SqlWithoutWhere Remove all assignments */
+            $sql = "UPDATE assignments SET autoassignees = ''";
+            $sqlite->exec($sql);
 
-        /** @noinspection SqlWithoutWhere Remove all patterns */
-        $sql = "DELETE FROM assignments_patterns";
-        $sqlite->query($sql);
+            /** @noinspection SqlWithoutWhere Remove all patterns */
+            $sql = "DELETE FROM assignments_patterns";
+            $sqlite->exec($sql);
 
-        // insert new patterns and gather affected pages
-        $pages = [];
+            // insert new patterns and gather affected pages
+            $pages = [];
 
-        $sql = "REPLACE INTO assignments_patterns (pattern, assignees) VALUES (?,?)";
-        foreach ($patterns as $pattern => $assignees) {
-            $pattern = trim($pattern);
-            $assignees = trim($assignees);
-            if (!$pattern || !$assignees) continue;
-            $sqlite->query($sql, $pattern, $assignees);
+            $sql = "REPLACE INTO assignments_patterns (pattern, assignees) VALUES (?,?)";
+            foreach ($patterns as $pattern => $assignees) {
+                $pattern = trim($pattern);
+                $assignees = trim($assignees);
+                if (!$pattern || !$assignees) continue;
+                $sqlite->exec($sql, [$pattern, $assignees]);
 
-            // patterns may overlap, so we need to gather all affected pages first
-            $affectedPages = $this->getPagesMatchingPattern($pattern);
-            foreach ($affectedPages as $page) {
-                if (isset($pages[$page])) {
-                    $pages[$page] .= ',' . $assignees;
-                } else {
-                    $pages[$page] = $assignees;
+                // patterns may overlap, so we need to gather all affected pages first
+                $affectedPages = $this->getPagesMatchingPattern($pattern);
+                foreach ($affectedPages as $page) {
+                    if (isset($pages[$page])) {
+                        $pages[$page] .= ',' . $assignees;
+                    } else {
+                        $pages[$page] = $assignees;
+                    }
                 }
             }
-        }
 
-        $sql = "INSERT INTO assignments (page, autoassignees) VALUES (?, ?)
+            $sql = "INSERT INTO assignments (page, autoassignees) VALUES (?, ?)
                 ON CONFLICT(page)
                 DO UPDATE SET autoassignees = ?";
-        foreach ($pages as $page => $assignees) {
-            // remove duplicates and empty entries
-            $assignees = join(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
-            $sqlite->query($sql, $page, $assignees, $assignees);
+            foreach ($pages as $page => $assignees) {
+                // remove duplicates and empty entries
+                $assignees = join(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
+                $sqlite->exec($sql, [$page, $assignees, $assignees]);
+            }
+        } catch (Exception $e) {
+            $sqlite->getPdo()->rollBack();
+            throw $e;
         }
-
-        $sqlite->query('COMMIT TRANSACTION');
+        $sqlite->getPdo()->commit();
     }
 
     /**
@@ -405,9 +395,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         if (!$sqlite) return [];
 
         $sql = "SELECT page FROM pages WHERE MATCHES_PAGE_PATTERN(?, page)";
-        $result = $sqlite->query($sql, $pattern);
-        $pages = $sqlite->res2arr($result);
-        $sqlite->res_close($result);
+        $pages = $sqlite->queryAll($sql, $pattern);
 
         return array_column($pages, 'page');
     }
@@ -434,9 +422,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
                    AND A.user = ?
                    AND A.ack >= B.lastmod";
 
-        $result = $sqlite->query($sql, $page, $user);
-        $acktime = $sqlite->res2single($result);
-        $sqlite->res_close($result);
+        $acktime = $sqlite->queryValue($sql, $page, $user);
 
         return $acktime ? (int)$acktime : false;
     }
@@ -459,11 +445,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
                  WHERE page = ?
                    AND user = ?";
 
-        $result = $sqlite->query($sql, $page, $user);
-        $latestAck = $sqlite->res2single($result);
-        $sqlite->res_close($result);
-
-        return $latestAck;
+        return $sqlite->queryValue($sql, [$page, $user]);
     }
 
     /**
@@ -480,8 +462,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
 
         $sql = "INSERT INTO acks (page, user, ack) VALUES (?,?, strftime('%s','now'))";
 
-        $result = $sqlite->query($sql, $page, $user);
-        $sqlite->res_close($result);
+        $sqlite->exec($sql, $page, $user);
         return true;
 
     }
@@ -509,11 +490,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
             ORDER BY A.page
             ";
 
-        $result = $sqlite->query($sql, $user, $user, implode('///', $groups));
-        $assignments = $sqlite->res2arr($result);
-        $sqlite->res_close($result);
-
-        return $assignments;
+        return $sqlite->queryAll($sql, [$user, $user, implode('///', $groups)]);
     }
 
     /**
@@ -531,7 +508,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sqlite = $this->getDB();
         if (!$sqlite) return false;
 
-        $ulist = $sqlite->quote_and_join($users);
+        $ulist = join(',', array_map([$sqlite->getPdo(), 'quote'], $users));
         $sql = "SELECT A.page, A.lastmod, B.user, MAX(B.ack) AS ack
                   FROM pages A
              LEFT JOIN acks B
@@ -540,9 +517,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
                 WHERE  A.page = ?
               GROUP BY A.page, B.user
                  ";
-        $result = $sqlite->query($sql, $page);
-        $acknowledgements = $sqlite->res2arr($result);
-        $sqlite->res_close($result);
+        $acknowledgements = $sqlite->queryAll($sql, $page);
 
         // there should be at least one result, unless the page is unknown
         if (!count($acknowledgements)) return false;
@@ -590,9 +565,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
           ORDER BY ack DESC
              LIMIT ?
               ';
-        $result = $sqlite->query($sql, $limit);
-        $acknowledgements = $sqlite->res2arr($result);
-        $sqlite->res_close($result);
+        $acknowledgements = $sqlite->queryAll($sql, $limit);
 
         return $acknowledgements;
     }
