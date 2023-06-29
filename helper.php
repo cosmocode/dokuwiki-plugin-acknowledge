@@ -242,6 +242,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
 
         $sql = "SELECT pageassignees,autoassignees FROM assignments WHERE page = ?";
         $record = $sqlite->queryRecord($sql, $page);
+        if (!$record) return false;
         $assignees = $record['pageassignees'] . ',' . $record['autoassignees'];
         return auth_isMember($assignees, $user, $groups);
     }
