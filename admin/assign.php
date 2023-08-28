@@ -10,6 +10,12 @@ use dokuwiki\Form\Form;
  */
 class admin_plugin_acknowledge_assign extends \dokuwiki\Extension\AdminPlugin
 {
+    /** @inheritdoc */
+    public function forAdminOnly()
+    {
+        return false;
+    }
+
     /** @inheritDoc */
     public function getMenuText($language)
     {
