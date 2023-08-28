@@ -249,13 +249,16 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
 
     /**
      * Fetch all assignments for a given user, with additional page information,
-     * filtering already granted acknowledgements.
+     * by default filtering already granted acknowledgements.
+     * Filter can be switched off via $includeDone
      *
      * @param string $user
      * @param array $groups
+     * @param bool $includeDone
+     *
      * @return array|bool
      */
-    public function getUserAssignments($user, $groups)
+    public function getUserAssignments($user, $groups, $includeDone = false)
     {
         $sqlite = $this->getDB();
         if (!$sqlite) return false;
@@ -265,8 +268,11 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
                 ON A.page = B.page
                 LEFT JOIN acks C
                 ON A.page = C.page AND ( (C.user = ? AND C.ack > B.lastmod) )
-                WHERE AUTH_ISMEMBER(A.pageassignees || ',' || A.autoassignees , ? , ?)
-                AND ack IS NULL";
+                WHERE AUTH_ISMEMBER(A.pageassignees || ',' || A.autoassignees , ? , ?)";
+
+        if (!$includeDone) {
+            $sql .= ' AND ack IS NULL';
+        }
 
         return $sqlite->queryAll($sql, $user, $user, implode('///', $groups));
     }

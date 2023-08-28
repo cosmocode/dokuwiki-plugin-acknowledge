@@ -29,12 +29,15 @@ class syntax_plugin_acknowledge_listing extends DokuWiki_Syntax_Plugin
     /** @inheritDoc */
     public function connectTo($mode)
     {
-        $this->Lexer->addSpecialPattern('~~ACKNOWLEDGE~~', $mode, 'plugin_acknowledge_listing');
+        $this->Lexer->addSpecialPattern('~~ACKNOWLEDGE.*?~~', $mode, 'plugin_acknowledge_listing');
     }
 
     /** @inheritDoc */
     public function handle($match, $state, $pos, Doku_Handler $handler)
     {
+        // check for 'all' parameter
+        $includeDone = strtolower(substr($match, strlen('~~ACKNOWLEDGE '), -2)) === 'all';
+        return ['includeDone' => $includeDone];
     }
 
     /** @inheritDoc */
@@ -47,17 +50,20 @@ class syntax_plugin_acknowledge_listing extends DokuWiki_Syntax_Plugin
         $renderer->info['cache'] = false;
 
         $renderer->doc .= '<div class="plugin-acknowledge-listing">';
-        $renderer->doc .= $this->getListing();
+        $renderer->doc .= $this->getListing($data['includeDone']);
         $renderer->doc .= '</div>';
         return true;
     }
 
     /**
-     * Returns the list of pages to be acknowledged by the user
+     * Returns the list of pages to be acknowledged by the user,
+     * optionally including past acknowledgments.
+     *
+     * @param bool $includeDone
      *
      * @return string
      */
-    protected function getListing()
+    protected function getListing($includeDone)
     {
         global $INPUT;
         global $USERINFO;
@@ -69,14 +75,17 @@ class syntax_plugin_acknowledge_listing extends DokuWiki_Syntax_Plugin
 
         /** @var helper_plugin_acknowledge $helper */
         $helper = plugin_load('helper', 'acknowledge');
-        $pending = $helper->getUserAssignments($user, $groups);
+        $items = $helper->getUserAssignments($user, $groups, $includeDone);
 
         $html =  $this->getLang('ackNotFound');
 
-        if (!empty($pending)) {
+        if (!empty($items)) {
             $html = '<ul>';
-            foreach ($pending as $item) {
-                $html .= '<li>' . html_wikilink(':' . $item['page']) . '</li>';
+            foreach ($items as $item) {
+                $done = $item['ack'] ?
+                    ' (' . sprintf($this->getLang('ackGranted'), dformat($item['ack'])) . ')'
+                    : '';
+                $html .= '<li>' . html_wikilink(':' . $item['page']) . $done . '</li>';
             }
             $html .= '</ul>';
         }
