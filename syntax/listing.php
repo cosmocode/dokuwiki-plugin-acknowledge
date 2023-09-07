@@ -83,7 +83,7 @@ class syntax_plugin_acknowledge_listing extends DokuWiki_Syntax_Plugin
             $html = '<ul>';
             foreach ($items as $item) {
                 $done = $item['ack'] ?
-                    ' (' . sprintf($this->getLang('ackGranted'), dformat($item['ack'])) . ')'
+                    ' <span title="' . sprintf($this->getLang('ackGranted'), dformat($item['ack'])) . '">&#x2714;</span>'
                     : '';
                 $html .= '<li>' . html_wikilink(':' . $item['page']) . $done . '</li>';
             }
