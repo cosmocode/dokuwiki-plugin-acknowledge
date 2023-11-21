@@ -1,5 +1,7 @@
 <?php
 
+use dokuwiki\Extension\Plugin;
+use dokuwiki\ChangeLog\PageChangeLog;
 use dokuwiki\ErrorHandler;
 use dokuwiki\Extension\AuthPlugin;
 use dokuwiki\plugin\sqlite\SQLiteDB;
@@ -10,9 +12,8 @@ use dokuwiki\plugin\sqlite\SQLiteDB;
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author  Andreas Gohr, Anna Dabrowska <dokuwiki@cosmocode.de>
  */
-class helper_plugin_acknowledge extends DokuWiki_Plugin
+class helper_plugin_acknowledge extends Plugin
 {
-
     protected $db;
 
     // region Database Management
@@ -108,14 +109,12 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
             }
         } elseif (substr($pattern, -1) == '*') {
             // namespaces match exact
-            if ($ans == $pns) {
+            if ($ans === $pns) {
                 return true;
             }
-        } else {
+        } elseif (cleanID($pattern) == $page) {
             // exact match
-            if (cleanID($pattern) == $page) {
-                return true;
-            }
+            return true;
         }
 
         return false;
@@ -148,7 +147,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
      */
     public function storePageDate($page, $lastmod, $newContent)
     {
-        $changelog = new \dokuwiki\ChangeLog\PageChangeLog($page);
+        $changelog = new PageChangeLog($page);
         $revs = $changelog->getRevisions(0, 1);
 
         // compare content
@@ -192,7 +191,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         $sqlite = $this->getDB();
         if (!$sqlite) return;
 
-        $assignees = join(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
+        $assignees = implode(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
 
         $sql = "REPLACE INTO assignments ('page', 'pageassignees') VALUES (?,?)";
         $sqlite->exec($sql, [$page, $assignees]);
@@ -220,7 +219,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
         }
 
         // remove duplicates and empty entries
-        $assignees = join(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
+        $assignees = implode(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
 
         // store the assignees
         $sql = "REPLACE INTO assignments ('page', 'autoassignees') VALUES (?,?)";
@@ -380,7 +379,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
                 DO UPDATE SET autoassignees = ?";
             foreach ($pages as $page => $assignees) {
                 // remove duplicates and empty entries
-                $assignees = join(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
+                $assignees = implode(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
                 $sqlite->exec($sql, [$page, $assignees, $assignees]);
             }
         } catch (Exception $e) {
@@ -471,7 +470,6 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
 
         $sqlite->exec($sql, $page, $user);
         return true;
-
     }
 
     /**
@@ -508,14 +506,14 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
      * @param string $page
      * @return array|false
      */
-    public function getPageAcknowledgements($page, $max=0)
+    public function getPageAcknowledgements($page, $max = 0)
     {
         $users = $this->getPageAssignees($page);
         if ($users === false) return false;
         $sqlite = $this->getDB();
         if (!$sqlite) return false;
 
-        $ulist = join(',', array_map([$sqlite->getPdo(), 'quote'], $users));
+        $ulist = implode(',', array_map([$sqlite->getPdo(), 'quote'], $users));
         $sql = "SELECT A.page, A.lastmod, B.user, MAX(B.ack) AS ack
                   FROM pages A
              LEFT JOIN acks B
@@ -524,7 +522,7 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
                 WHERE  A.page = ?
               GROUP BY A.page, B.user
                  ";
-        if($max) $sql .= " LIMIT $max";
+        if ($max) $sql .= " LIMIT $max";
         $acknowledgements = $sqlite->queryAll($sql, $page);
 
         // there should be at least one result, unless the page is unknown
@@ -580,4 +578,3 @@ class helper_plugin_acknowledge extends DokuWiki_Plugin
 
     // endregion
 }
-

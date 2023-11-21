@@ -1,5 +1,6 @@
 <?php
 
+use dokuwiki\Extension\AdminPlugin;
 use dokuwiki\Form\Form;
 
 /**
@@ -8,7 +9,7 @@ use dokuwiki\Form\Form;
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author  Andreas Gohr, Anna Dabrowska <dokuwiki@cosmocode.de>
  */
-class admin_plugin_acknowledge_assign extends \dokuwiki\Extension\AdminPlugin
+class admin_plugin_acknowledge_assign extends AdminPlugin
 {
     /** @inheritdoc */
     public function forAdminOnly()
@@ -38,7 +39,6 @@ class admin_plugin_acknowledge_assign extends \dokuwiki\Extension\AdminPlugin
         if ($patterns && checkSecurityToken()) {
             $helper->saveAssignmentPatterns($patterns);
         }
-
     }
 
     /** @inheritDoc */
@@ -99,7 +99,4 @@ class admin_plugin_acknowledge_assign extends \dokuwiki\Extension\AdminPlugin
     {
         return (new admin_plugin_acknowledge_report())->getTOC();
     }
-
-
 }
-

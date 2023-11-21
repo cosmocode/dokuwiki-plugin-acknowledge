@@ -1,4 +1,5 @@
 <?php
+
 /**
  * DokuWiki Plugin acknowledge (Action Component)
  *
@@ -6,13 +7,15 @@
  * @author  Andreas Gohr, Anna Dabrowska <dokuwiki@cosmocode.de>
  */
 
+use dokuwiki\Extension\ActionPlugin;
+use dokuwiki\Extension\EventHandler;
+use dokuwiki\Extension\Event;
 use dokuwiki\Form\Form;
 
-class action_plugin_acknowledge extends DokuWiki_Action_Plugin
+class action_plugin_acknowledge extends ActionPlugin
 {
-
     /** @inheritDoc */
-    public function register(Doku_Event_Handler $controller)
+    public function register(EventHandler $controller)
     {
         $controller->register_hook('COMMON_WIKIPAGE_SAVE', 'AFTER', $this, 'handlePageSave');
         $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handleAjax');
@@ -26,10 +29,10 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
      * Handle page deletions
      * Handle page creations
      *
-     * @param Doku_Event $event
+     * @param Event $event
      * @param $param
      */
-    public function handlePageSave(Doku_Event $event, $param)
+    public function handlePageSave(Event $event, $param)
     {
         /** @var helper_plugin_acknowledge $helper */
         $helper = plugin_load('helper', 'acknowledge');
@@ -51,10 +54,10 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
     }
 
     /**
-     * @param Doku_Event $event
+     * @param Event $event
      * @param $param
      */
-    public function handleAjax(Doku_Event $event, $param)
+    public function handleAjax(Event $event, $param)
     {
         if ($event->data === 'plugin_acknowledge_assign') {
             $event->stopPropagation();
@@ -72,11 +75,11 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
     /**
      * Handle Migration events
      *
-     * @param Doku_Event $event
+     * @param Event $event
      * @param $param
      * @return void
      */
-    public function handleUpgrade(Doku_Event $event, $param)
+    public function handleUpgrade(Event $event, $param)
     {
         if ($event->data['sqlite']->getAdapter()->getDbname() !== 'acknowledgement') {
             return;
