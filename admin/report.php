@@ -1,5 +1,7 @@
 <?php
 
+use dokuwiki\Extension\AdminPlugin;
+use dokuwiki\Form\Form;
 use dokuwiki\Extension\AuthPlugin;
 
 /**
@@ -8,9 +10,8 @@ use dokuwiki\Extension\AuthPlugin;
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author  Andreas Gohr, Anna Dabrowska <dokuwiki@cosmocode.de>
  */
-class admin_plugin_acknowledge_report extends DokuWiki_Admin_Plugin
+class admin_plugin_acknowledge_report extends AdminPlugin
 {
-
     /** @inheritdoc */
     public function forAdminOnly()
     {
@@ -57,7 +58,7 @@ class admin_plugin_acknowledge_report extends DokuWiki_Admin_Plugin
 
         foreach ($pages as $pattern) {
             $acknowledgements = array_merge($acknowledgements, $helper->getPageAcknowledgements($pattern, 1000));
-            if(count($acknowledgements) > 1000) {
+            if (count($acknowledgements) > 1000) {
                 // don't show too many
                 msg($this->getLang('toomanyresults'), 0);
                 break;
@@ -120,14 +121,14 @@ class admin_plugin_acknowledge_report extends DokuWiki_Admin_Plugin
         echo '<nav>';
         echo $this->homeLink();
 
-        $form = new dokuwiki\Form\Form(['method' => 'GET']);
+        $form = new Form(['method' => 'GET']);
         $form->setHiddenField('do', 'admin');
         $form->setHiddenField('page', 'acknowledge_report');
         $form->addTextInput('user', $this->getLang('overviewUser'));
         $form->addButton('', '>');
         echo $form->toHTML();
 
-        $form = new dokuwiki\Form\Form(['method' => 'GET']);
+        $form = new Form(['method' => 'GET']);
         $form->setHiddenField('do', 'admin');
         $form->setHiddenField('page', 'acknowledge_report');
         $form->addTextInput('pg', $this->getLang('pattern'))->val($ID);
@@ -161,8 +162,10 @@ class admin_plugin_acknowledge_report extends DokuWiki_Admin_Plugin
             echo '<tr>';
             echo '<td>' . $this->pageLink($item['page']) . '</td>';
             echo '<td>' . $this->userLink($item['user']) . '</td>';
-            echo '<td>' . html_wikilink(':' . $item['page'],
-                    ($item['lastmod'] ? dformat($item['lastmod']) : '?')) . '</td>';
+            echo '<td>' . html_wikilink(
+                ':' . $item['page'],
+                ($item['lastmod'] ? dformat($item['lastmod']) : '?')
+            ) . '</td>';
             echo '<td>' . ($item['ack'] ? dformat($item['ack']) : '') . '</td>';
             echo '<td>' . ($current ? $this->getLang('yes') : '') . '</td>';
             echo '</tr>';
@@ -238,11 +241,15 @@ class admin_plugin_acknowledge_report extends DokuWiki_Admin_Plugin
         return [
             html_mktocitem(
                 wl($ID, ['do' => 'admin', 'page' => 'acknowledge_report']),
-                $this->getLang('menu'), 0, ''
+                $this->getLang('menu'),
+                0,
+                ''
             ),
             html_mktocitem(
                 wl($ID, ['do' => 'admin', 'page' => 'acknowledge_assign']),
-                $this->getLang('menu_assign'), 0, ''
+                $this->getLang('menu_assign'),
+                0,
+                ''
             ),
         ];
     }
