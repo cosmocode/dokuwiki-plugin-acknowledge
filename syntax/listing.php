@@ -85,7 +85,9 @@ class syntax_plugin_acknowledge_listing extends SyntaxPlugin
             $html = '<ul>';
             foreach ($items as $item) {
                 $done = $item['ack'] ?
-                    ' <span title="' . sprintf($this->getLang('ackGranted'), dformat($item['ack'])) . '">&#x2714;</span>'
+                    ' <span title="'
+                    . sprintf($this->getLang('ackGranted'), dformat($item['ack']))
+                    . '">&#x2714;</span>'
                     : '';
                 $html .= '<li>' . html_wikilink(':' . $item['page']) . $done . '</li>';
             }

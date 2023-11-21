@@ -144,7 +144,11 @@ class action_plugin_acknowledge extends ActionPlugin
 
             $form = new Form(['id' => 'ackForm']);
             $form->addCheckbox('ack', $this->getLang('ackText'))->attr('required', 'required');
-            $form->addHTML('<br><button type="submit" name="acksubmit" id="ack-submit">' . $this->getLang('ackButton') . '</button>');
+            $form->addHTML(
+                '<br><button type="submit" name="acksubmit" id="ack-submit">'
+                . $this->getLang('ackButton')
+                . '</button>'
+            );
 
             $html .= $form->toHTML();
             $html .= '</div>';

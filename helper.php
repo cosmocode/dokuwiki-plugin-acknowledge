@@ -48,8 +48,10 @@ class helper_plugin_acknowledge extends Plugin
      * @param string $memberList
      * @param string $user
      * @param string $groups
+     *
      * @return bool
      */
+    // phpcs:ignore PSR1.Methods.CamelCapsMethodName.NotCamelCaps
     public function auth_isMember($memberList, $user, $groups)
     {
         return auth_isMember($memberList, $user, explode('///', $groups));
