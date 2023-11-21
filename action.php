@@ -57,9 +57,15 @@ class action_plugin_acknowledge extends DokuWiki_Action_Plugin
     public function handleAjax(Doku_Event $event, $param)
     {
         if ($event->data === 'plugin_acknowledge_assign') {
-            echo $this->html();
             $event->stopPropagation();
             $event->preventDefault();
+
+            global $INPUT;
+            $id = $INPUT->str('id');
+
+            if (page_exists($id)) {
+                echo $this->html();
+            }
         }
     }
 
