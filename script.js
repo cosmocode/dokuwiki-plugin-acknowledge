@@ -1,5 +1,31 @@
 jQuery(function () {
 
+    /**
+     * admin interface: autocomplete users
+     */
+    function adminAutocomplete($form) {
+
+        $form.find('input')
+            .autocomplete({
+                source: function (request, response) {
+                    jQuery.getJSON(DOKU_BASE + 'lib/exe/ajax.php?call=plugin_acknowledge_autocomplete', {
+                        user: request.term,
+                        sectok: $form.find('input[name="sectok"]').val()
+                    }, response);
+                },
+                minLength: 0
+            });
+    }
+
+    const $form = jQuery('.dokuwiki.mode_admin div.plugin_acknowledgement_admin form#acknowledge__user-autocomplete');
+    if ($form.length) {
+        adminAutocomplete($form);
+    }
+
+    /*
+     * Handle assignments
+     */
+
     let $aContainer = jQuery('.plugin-acknowledge-assign');
 
     // if no container is found, create one in the last section

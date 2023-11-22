@@ -18,7 +18,8 @@ class action_plugin_acknowledge extends ActionPlugin
     public function register(EventHandler $controller)
     {
         $controller->register_hook('COMMON_WIKIPAGE_SAVE', 'AFTER', $this, 'handlePageSave');
-        $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handleAjax');
+        $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handleAjaxAssign');
+        $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handleAjaxAutocomplete');
         $controller->register_hook('PLUGIN_SQLITE_DATABASE_UPGRADE', 'AFTER', $this, 'handleUpgrade');
     }
 
@@ -57,7 +58,7 @@ class action_plugin_acknowledge extends ActionPlugin
      * @param Event $event
      * @param $param
      */
-    public function handleAjax(Event $event, $param)
+    public function handleAjaxAssign(Event $event, $param)
     {
         if ($event->data === 'plugin_acknowledge_assign') {
             $event->stopPropagation();
@@ -69,6 +70,37 @@ class action_plugin_acknowledge extends ActionPlugin
             if (page_exists($id)) {
                 echo $this->html();
             }
+        }
+    }
+
+    /**
+     * @param Event $event
+     * @return void
+     */
+    public function handleAjaxAutocomplete(Event $event)
+    {
+        if ($event->data === 'plugin_acknowledge_autocomplete') {
+
+            if (!checkSecurityToken()) return;
+
+            global $INPUT;
+
+            $event->stopPropagation();
+            $event->preventDefault();
+
+            /** @var helper_plugin_acknowledge $hlp */
+            $hlp = $this->loadHelper('acknowledge');
+
+            $knownUsers = $hlp->getUsers();
+
+            $search = $INPUT->str('user');
+            $found = array_filter($knownUsers, function ($user) use ($search) {
+                return (strstr(strtolower($user['label']), strtolower($search))) !== false ? $user : null;
+            });
+
+            header('Content-Type: application/json');
+
+            echo json_encode($found);
         }
     }
 
