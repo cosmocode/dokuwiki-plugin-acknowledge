@@ -123,6 +123,7 @@ class helper_plugin_acknowledge extends Plugin
     }
 
     /**
+     * Returns all users, formatted for autocomplete
      *
      * @return array
      */
@@ -135,11 +136,11 @@ class helper_plugin_acknowledge extends Plugin
             return [];
         }
 
-        $cb = function($k, $v) {
-          return [
+        $cb = function ($k, $v) {
+            return [
               'value' => $k,
               'label' => $k  . ' (' . $v['name'] . ')'
-          ];
+            ];
         };
         $users = $auth->retrieveUsers();
         $users = array_map($cb, array_keys($users), array_values($users));

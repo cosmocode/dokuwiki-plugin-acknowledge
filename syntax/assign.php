@@ -59,7 +59,7 @@ class syntax_plugin_acknowledge_assign extends SyntaxPlugin
         }
 
         // a canvas to render the output to
-        $renderer->doc .= '<div class="plugin-acknowledge-assign">…</div>';
+        $renderer->doc .= '<div class="plugin-acknowledge-banner">…</div>';
         return true;
     }
 }

@@ -18,7 +18,7 @@ class action_plugin_acknowledge extends ActionPlugin
     public function register(EventHandler $controller)
     {
         $controller->register_hook('COMMON_WIKIPAGE_SAVE', 'AFTER', $this, 'handlePageSave');
-        $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handleAjaxAssign');
+        $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handleAjaxAcknowledge');
         $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handleAjaxAutocomplete');
         $controller->register_hook('PLUGIN_SQLITE_DATABASE_UPGRADE', 'AFTER', $this, 'handleUpgrade');
     }
@@ -58,9 +58,9 @@ class action_plugin_acknowledge extends ActionPlugin
      * @param Event $event
      * @param $param
      */
-    public function handleAjaxAssign(Event $event, $param)
+    public function handleAjaxAcknowledge(Event $event, $param)
     {
-        if ($event->data === 'plugin_acknowledge_assign') {
+        if ($event->data === 'plugin_acknowledge_acknowledge') {
             $event->stopPropagation();
             $event->preventDefault();
 
@@ -80,7 +80,6 @@ class action_plugin_acknowledge extends ActionPlugin
     public function handleAjaxAutocomplete(Event $event)
     {
         if ($event->data === 'plugin_acknowledge_autocomplete') {
-
             if (!checkSecurityToken()) return;
 
             global $INPUT;

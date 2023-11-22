@@ -39,19 +39,19 @@ jQuery(function () {
         if (section.length === 0) {
             return;
         }
-        $aContainer = jQuery('<div class="plugin-acknowledge-assign"></div>');
+        $aContainer = jQuery('<div class="plugin-acknowledge-banner"></div>');
         section.append($aContainer);
     }
 
     $aContainer.on('submit', function (event) {
         event.preventDefault();
-        var $form = jQuery(event.target),
+        const $form = jQuery(event.target),
             ack = $form.find("input[name='ack']")[0];
 
         $aContainer.load(
             DOKU_BASE + "lib/exe/ajax.php",
             {
-                call: "plugin_acknowledge_assign",
+                call: "plugin_acknowledge_acknowledge",
                 id: JSINFO.id,
                 ack: ack.checked === true ? 1 : 0
             }
@@ -60,12 +60,12 @@ jQuery(function () {
     $aContainer.load(
         DOKU_BASE + 'lib/exe/ajax.php',
         {
-            call: 'plugin_acknowledge_assign',
+            call: 'plugin_acknowledge_acknowledge',
             id: JSINFO.id
         },
         response => {
             // remove container if no data to show
-            if(response === '') {
+            if (response === '') {
                 $aContainer.remove();
             }
         }
