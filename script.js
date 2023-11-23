@@ -13,7 +13,7 @@ jQuery(function () {
                         sectok: $form.find('input[name="sectok"]').val()
                     }, response);
                 },
-                minLength: 0
+                minLength: 1
             });
     }
 
