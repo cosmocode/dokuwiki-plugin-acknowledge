@@ -122,9 +122,11 @@ class admin_plugin_acknowledge_report extends AdminPlugin
         echo $this->homeLink();
 
         $form = new Form(['method' => 'GET']);
+        $form->id('acknowledge__user-autocomplete');
         $form->setHiddenField('do', 'admin');
         $form->setHiddenField('page', 'acknowledge_report');
-        $form->addTextInput('user', $this->getLang('overviewUser'));
+        $form->addTextInput('user', $this->getLang('overviewUser'))
+            ->attr('type', 'search');
         $form->addButton('', '>');
         echo $form->toHTML();
 

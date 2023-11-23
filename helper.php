@@ -122,6 +122,32 @@ class helper_plugin_acknowledge extends Plugin
         return false;
     }
 
+    /**
+     * Returns all users, formatted for autocomplete
+     *
+     * @return array
+     */
+    public function getUsers()
+    {
+        /** @var AuthPlugin $auth */
+        global $auth;
+
+        if (!$auth->canDo('getUsers')) {
+            return [];
+        }
+
+        $cb = function ($k, $v) {
+            return [
+              'value' => $k,
+              'label' => $k  . ' (' . $v['name'] . ')'
+            ];
+        };
+        $users = $auth->retrieveUsers();
+        $users = array_map($cb, array_keys($users), array_values($users));
+
+        return $users;
+    }
+
     // endregion
     // region Page Data
 
