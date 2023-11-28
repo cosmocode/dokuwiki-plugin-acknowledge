@@ -25,10 +25,13 @@ $lang['overviewHistory'] = 'Sie können ältere Bestätigungen über die Datenba
 $lang['count'] = 'Nutzer %s hat %d von %d Seiten bestätigt.';
 $lang['yes'] = 'ja';
 $lang['home'] = 'Neueste Bestätigungen';
+$lang['status'] = 'Status';
+$lang['all'] = 'alle';
+$lang['current'] = 'aktuell';
+$lang['due'] = 'offen';
 
 $lang['pattern'] = 'Seiten-Muster';
 $lang['assignees'] = 'Zuweisung';
 $lang['save'] = 'Speichern';
-
 
 $lang['error sqlite plugin missing'] = 'Das sqlite plugin ist nicht installiert';

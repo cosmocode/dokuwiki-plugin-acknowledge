@@ -26,6 +26,10 @@ $lang['overviewHistory'] = 'You can access previous acknowledgments by querying 
 $lang['count'] = 'User %s signed %d of %d pages.';
 $lang['yes'] = 'yes';
 $lang['home'] = 'Newest Acknowledgements';
+$lang['status'] = 'Status';
+$lang['all'] = 'all';
+$lang['current'] = 'current';
+$lang['due'] = 'due';
 
 $lang['toomanyresults'] = 'Too many results to show. Output limited.';
 

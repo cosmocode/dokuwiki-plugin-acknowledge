@@ -501,17 +501,38 @@ class helper_plugin_acknowledge extends Plugin
     }
 
     /**
-     * Get all pages a user needs to acknowledge and the last acknowledge date
+     * Get all pages that a user needs to acknowledge and/or the last acknowledgement infos
+     * depending on the (optional) filter based on status of the acknowledgements.
      *
      * @param string $user
      * @param array $groups
+     * @param string $status Optional status filter, can be all (default), current or due
+     *
      * @return array|bool
      */
-    public function getUserAcknowledgements($user, $groups)
+    public function getUserAcknowledgements($user, $groups, $status = '')
     {
         $sqlite = $this->getDB();
         if (!$sqlite) return false;
 
+        // filter clause
+        switch ($status) {
+            case 'current':
+                $having = ' HAVING ack >= B.lastmod ';
+                break;
+            case 'due':
+                $having = ' HAVING (ack IS NULL) OR (ack < B.lastmod) ';
+                break;
+            case 'outdated':
+                $having = ' HAVING ack < B.lastmod ';
+                break;
+            case 'all':
+            default:
+                $having = '';
+                break;
+        }
+
+        // query
         $sql = "SELECT A.page, A.pageassignees, A.autoassignees, B.lastmod, C.user, MAX(C.ack) AS ack
                   FROM assignments A
                   JOIN pages B
@@ -519,9 +540,10 @@ class helper_plugin_acknowledge extends Plugin
              LEFT JOIN acks C
                     ON A.page = C.page AND C.user = ?
                  WHERE AUTH_ISMEMBER(A.pageassignees || ',' || A.autoassignees, ? , ?)
-            GROUP BY A.page
-            ORDER BY A.page
-            ";
+              GROUP BY A.page";
+        $sql .= $having;
+        $sql .= "
+              ORDER BY A.page";
 
         return $sqlite->queryAll($sql, [$user, $user, implode('///', $groups)]);
     }
@@ -532,9 +554,10 @@ class helper_plugin_acknowledge extends Plugin
      * This can be slow!
      *
      * @param string $page
+     * @param string $user
      * @return array|false
      */
-    public function getPageAcknowledgements($page, $max = 0)
+    public function getPageAcknowledgements($page, $max = 0, $user = '')
     {
         $users = $this->getPageAssignees($page);
         if ($users === false) return false;
