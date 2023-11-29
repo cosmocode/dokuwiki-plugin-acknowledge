@@ -598,7 +598,6 @@ class helper_plugin_acknowledge extends Plugin
      *
      * @param string $status
      * @param string $alias Table alias used in the SQL query
-     * @return string
      */
     protected function getFilterClause(string $status, string $alias): string
     {
