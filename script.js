@@ -5,7 +5,7 @@ jQuery(function () {
      */
     function adminAutocomplete($form) {
 
-        $form.find('input')
+        $form.find('input[name="user"]')
             .autocomplete({
                 source: function (request, response) {
                     jQuery.getJSON(DOKU_BASE + 'lib/exe/ajax.php?call=plugin_acknowledge_autocomplete', {

@@ -1,0 +1,7 @@
+====== Acknowledgement Overview ======
+
+You can use the following page patterns:
+
+  * Pages as usual with their full page ID
+  * Namespaces as ''<nowiki>namespace:*</nowiki>''
+  * Regular Expressions starting and ending with ''/''

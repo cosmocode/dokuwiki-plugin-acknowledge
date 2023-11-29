@@ -1,0 +1,6 @@
+====== Bestätigungen: Überblick ======
+
+Sie können folgende Seiten-Muster benutzen:
+  * Seiten wie üblich mit ihrer Seiten-ID
+  * Namensräume als ''<nowiki>namespace:*</nowiki>''
+  * Reguläre Ausdrücke, die mit ''/'' beginnen und enden
