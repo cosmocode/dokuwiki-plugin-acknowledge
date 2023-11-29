@@ -29,7 +29,7 @@ class admin_plugin_acknowledge_report extends AdminPlugin
         global $INPUT;
 
         echo '<div class="plugin_acknowledgement_admin">';
-        echo '<h1>' . $this->getLang('menu') . '</h1>';
+        echo $this->locale_xhtml('report');
         $this->htmlForms();
         $user = $INPUT->str('user');
         $pg = $INPUT->str('pg');
