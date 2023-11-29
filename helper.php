@@ -19,11 +19,12 @@ class helper_plugin_acknowledge extends Plugin
     // region Database Management
 
     /**
-     * Get SQLiteDB instance
+     * Constructor
      *
-     * @return SQLiteDB|null
+     * @return void
+     * @throws Exception
      */
-    public function getDB()
+    public function __construct()
     {
         if ($this->db === null) {
             try {
@@ -36,9 +37,18 @@ class helper_plugin_acknowledge extends Plugin
                 if (defined('DOKU_UNITTEST')) throw new \RuntimeException('Could not load SQLite', 0, $exception);
                 ErrorHandler::logException($exception);
                 msg($this->getLang('error sqlite plugin missing'), -1);
-                return null;
+                throw $exception;
             }
         }
+    }
+
+    /**
+     * Wrapper for test DB access
+     *
+     * @return SQLiteDB
+     */
+    public function getDB()
+    {
         return $this->db;
     }
 
@@ -63,26 +73,23 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function updatePageIndex()
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return;
-
         $pages = idx_getIndex('page', '');
         $sql = "INSERT OR IGNORE INTO pages (page, lastmod) VALUES (?,?)";
 
-        $sqlite->getPdo()->beginTransaction();
+        $this->db->getPdo()->beginTransaction();
         foreach ($pages as $page) {
             $page = trim($page);
             $lastmod = @filemtime(wikiFN($page));
             if ($lastmod) {
                 try {
-                    $sqlite->exec($sql, [$page, $lastmod]);
+                    $this->db->exec($sql, [$page, $lastmod]);
                 } catch (\Exception $exception) {
-                    $sqlite->getPdo()->rollBack();
+                    $this->db->getPdo()->rollBack();
                     throw $exception;
                 }
             }
         }
-        $sqlite->getPdo()->commit();
+        $this->db->getPdo()->commit();
     }
 
     /**
@@ -160,11 +167,8 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function removePage($page)
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return;
-
         $sql = "DELETE FROM pages WHERE page = ?";
-        $sqlite->exec($sql, $page);
+        $this->db->exec($sql, $page);
     }
 
     /**
@@ -183,11 +187,8 @@ class helper_plugin_acknowledge extends Plugin
         $newContent = str_replace(NL, '', $newContent);
         if ($oldContent === $newContent) return;
 
-        $sqlite = $this->getDB();
-        if (!$sqlite) return;
-
         $sql = "REPLACE INTO pages (page, lastmod) VALUES (?,?)";
-        $sqlite->exec($sql, [$page, $lastmod]);
+        $this->db->exec($sql, [$page, $lastmod]);
     }
 
     // endregion
@@ -200,11 +201,8 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function clearPageAssignments($page)
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return;
-
         $sql = "UPDATE assignments SET pageassignees = '' WHERE page = ?";
-        $sqlite->exec($sql, $page);
+        $this->db->exec($sql, $page);
     }
 
     /**
@@ -216,13 +214,10 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function setPageAssignees($page, $assignees)
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return;
-
         $assignees = implode(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
 
         $sql = "REPLACE INTO assignments ('page', 'pageassignees') VALUES (?,?)";
-        $sqlite->exec($sql, [$page, $assignees]);
+        $this->db->exec($sql, [$page, $assignees]);
     }
 
     /**
@@ -231,9 +226,6 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function setAutoAssignees($page)
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return;
-
         $patterns = $this->getAssignmentPatterns();
 
         // given assignees
@@ -251,7 +243,7 @@ class helper_plugin_acknowledge extends Plugin
 
         // store the assignees
         $sql = "REPLACE INTO assignments ('page', 'autoassignees') VALUES (?,?)";
-        $sqlite->exec($sql, [$page, $assignees]);
+        $this->db->exec($sql, [$page, $assignees]);
     }
 
     /**
@@ -264,11 +256,8 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function isUserAssigned($page, $user, $groups)
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return false;
-
         $sql = "SELECT pageassignees,autoassignees FROM assignments WHERE page = ?";
-        $record = $sqlite->queryRecord($sql, $page);
+        $record = $this->db->queryRecord($sql, $page);
         if (!$record) return false;
         $assignees = $record['pageassignees'] . ',' . $record['autoassignees'];
         return auth_isMember($assignees, $user, $groups);
@@ -287,9 +276,6 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function getUserAssignments($user, $groups, $includeDone = false)
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return false;
-
         $sql = "SELECT A.page, A.pageassignees, A.autoassignees, B.lastmod, C.user, C.ack FROM assignments A
                 JOIN pages B
                 ON A.page = B.page
@@ -301,9 +287,8 @@ class helper_plugin_acknowledge extends Plugin
             $sql .= ' AND ack IS NULL';
         }
 
-        return $sqlite->queryAll($sql, $user, $user, implode('///', $groups));
+        return $this->db->queryAll($sql, $user, $user, implode('///', $groups));
     }
-
 
     /**
      * Resolve names of users assigned to a given page
@@ -315,15 +300,13 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function getPageAssignees($page)
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return false;
         /** @var AuthPlugin $auth */
         global $auth;
 
         $sql = "SELECT pageassignees || ',' || autoassignees AS 'assignments'
                   FROM assignments
                  WHERE page = ?";
-        $assignments = $sqlite->queryValue($sql, $page);
+        $assignments = $this->db->queryValue($sql, $page);
 
         $users = [];
         foreach (explode(',', $assignments) as $item) {
@@ -351,11 +334,8 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function getAssignmentPatterns()
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return [];
-
         $sql = "SELECT pattern, assignees FROM assignments_patterns";
-        return $sqlite->queryKeyValueList($sql);
+        return $this->db->queryKeyValueList($sql);
     }
 
     /**
@@ -367,19 +347,16 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function saveAssignmentPatterns($patterns)
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return;
-
-        $sqlite->getPdo()->beginTransaction();
+        $this->db->getPdo()->beginTransaction();
         try {
 
             /** @noinspection SqlWithoutWhere Remove all assignments */
             $sql = "UPDATE assignments SET autoassignees = ''";
-            $sqlite->exec($sql);
+            $this->db->exec($sql);
 
             /** @noinspection SqlWithoutWhere Remove all patterns */
             $sql = "DELETE FROM assignments_patterns";
-            $sqlite->exec($sql);
+            $this->db->exec($sql);
 
             // insert new patterns and gather affected pages
             $pages = [];
@@ -389,7 +366,7 @@ class helper_plugin_acknowledge extends Plugin
                 $pattern = trim($pattern);
                 $assignees = trim($assignees);
                 if (!$pattern || !$assignees) continue;
-                $sqlite->exec($sql, [$pattern, $assignees]);
+                $this->db->exec($sql, [$pattern, $assignees]);
 
                 // patterns may overlap, so we need to gather all affected pages first
                 $affectedPages = $this->getPagesMatchingPattern($pattern);
@@ -408,13 +385,13 @@ class helper_plugin_acknowledge extends Plugin
             foreach ($pages as $page => $assignees) {
                 // remove duplicates and empty entries
                 $assignees = implode(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
-                $sqlite->exec($sql, [$page, $assignees, $assignees]);
+                $this->db->exec($sql, [$page, $assignees, $assignees]);
             }
         } catch (Exception $e) {
-            $sqlite->getPdo()->rollBack();
+            $this->db->getPdo()->rollBack();
             throw $e;
         }
-        $sqlite->getPdo()->commit();
+        $this->db->getPdo()->commit();
     }
 
     /**
@@ -425,11 +402,8 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function getPagesMatchingPattern($pattern)
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return [];
-
         $sql = "SELECT page FROM pages WHERE MATCHES_PAGE_PATTERN(?, page)";
-        $pages = $sqlite->queryAll($sql, $pattern);
+        $pages = $this->db->queryAll($sql, $pattern);
 
         return array_column($pages, 'page');
     }
@@ -446,9 +420,6 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function hasUserAcknowledged($page, $user)
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return false;
-
         $sql = "SELECT ack
                   FROM acks A, pages B
                  WHERE A.page = B.page
@@ -456,7 +427,7 @@ class helper_plugin_acknowledge extends Plugin
                    AND A.user = ?
                    AND A.ack >= B.lastmod";
 
-        $acktime = $sqlite->queryValue($sql, $page, $user);
+        $acktime = $this->db->queryValue($sql, $page, $user);
 
         return $acktime ? (int)$acktime : false;
     }
@@ -471,15 +442,12 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function getLatestUserAcknowledgement($page, $user)
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return false;
-
         $sql = "SELECT MAX(ack)
                   FROM acks
                  WHERE page = ?
                    AND user = ?";
 
-        return $sqlite->queryValue($sql, [$page, $user]);
+        return $this->db->queryValue($sql, [$page, $user]);
     }
 
     /**
@@ -491,12 +459,9 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function saveAcknowledgement($page, $user)
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return false;
-
         $sql = "INSERT INTO acks (page, user, ack) VALUES (?,?, strftime('%s','now'))";
 
-        $sqlite->exec($sql, $page, $user);
+        $this->db->exec($sql, $page, $user);
         return true;
     }
 
@@ -512,25 +477,7 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function getUserAcknowledgements($user, $groups, $status = '')
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return false;
-
-        // filter clause
-        switch ($status) {
-            case 'current':
-                $having = ' HAVING ack >= B.lastmod ';
-                break;
-            case 'due':
-                $having = ' HAVING (ack IS NULL) OR (ack < B.lastmod) ';
-                break;
-            case 'outdated':
-                $having = ' HAVING ack < B.lastmod ';
-                break;
-            case 'all':
-            default:
-                $having = '';
-                break;
-        }
+        $filterClause = $this->getFilterClause($status, 'B');
 
         // query
         $sql = "SELECT A.page, A.pageassignees, A.autoassignees, B.lastmod, C.user, MAX(C.ack) AS ack
@@ -541,11 +488,11 @@ class helper_plugin_acknowledge extends Plugin
                     ON A.page = C.page AND C.user = ?
                  WHERE AUTH_ISMEMBER(A.pageassignees || ',' || A.autoassignees, ? , ?)
               GROUP BY A.page";
-        $sql .= $having;
+        $sql .= $filterClause;
         $sql .= "
               ORDER BY A.page";
 
-        return $sqlite->queryAll($sql, [$user, $user, implode('///', $groups)]);
+        return $this->db->queryAll($sql, [$user, $user, implode('///', $groups)]);
     }
 
     /**
@@ -555,29 +502,44 @@ class helper_plugin_acknowledge extends Plugin
      *
      * @param string $page
      * @param string $user
-     * @return array|false
+     * @param string $status
+     * @param int $max
+     *
+     * @return array
      */
-    public function getPageAcknowledgements($page, $max = 0, $user = '')
+    public function getPageAcknowledgements($page, $user = '', $status = '', $max = 0)
     {
-        $users = $this->getPageAssignees($page);
-        if ($users === false) return false;
-        $sqlite = $this->getDB();
-        if (!$sqlite) return false;
+        $userClause = '';
+        $params[] = $page;
 
-        $ulist = implode(',', array_map([$sqlite->getPdo(), 'quote'], $users));
+        // filtering for user from input or using saved assignees?
+        if ($user) {
+            $users = [$user];
+            $userClause = ' AND (B.user = ? OR B.user IS NULL) ';
+            $params[] = $user;
+        } else {
+            $users = $this->getPageAssignees($page);
+            if (!$users) return [];
+        }
+
+        $ulist = implode(',', array_map([$this->db->getPdo(), 'quote'], $users));
         $sql = "SELECT A.page, A.lastmod, B.user, MAX(B.ack) AS ack
                   FROM pages A
              LEFT JOIN acks B
                     ON A.page = B.page
                    AND B.user IN ($ulist)
-                WHERE  A.page = ?
-              GROUP BY A.page, B.user
-                 ";
+                WHERE  A.page = ? $userClause";
+        $sql .= " GROUP BY A.page, B.user ";
         if ($max) $sql .= " LIMIT $max";
-        $acknowledgements = $sqlite->queryAll($sql, $page);
+
+        $acknowledgements = $this->db->queryAll($sql, $params);
+
+        if ($status === 'current') {
+            return $acknowledgements;
+        }
 
         // there should be at least one result, unless the page is unknown
-        if (!count($acknowledgements)) return false;
+        if (!count($acknowledgements)) return $acknowledgements;
 
         $baseinfo = [
             'page' => $acknowledgements[0]['page'],
@@ -599,6 +561,15 @@ class helper_plugin_acknowledge extends Plugin
             }
         }
 
+        // finally remove current acknowledgements if filter is used
+        // this cannot be done in SQL without loss of data,
+        // filtering must happen last, otherwise removed current acks will be re-added as due
+        if ($status === 'due') {
+            $combined = array_filter($combined, function($info) {
+                return $info['ack'] < $info['lastmod'];
+            });
+        }
+
         ksort($combined);
         return array_values($combined);
     }
@@ -607,13 +578,10 @@ class helper_plugin_acknowledge extends Plugin
      * Returns all acknowledgements
      *
      * @param int $limit maximum number of results
-     * @return array|bool
+     * @return array
      */
     public function getAcknowledgements($limit = 100)
     {
-        $sqlite = $this->getDB();
-        if (!$sqlite) return false;
-
         $sql = '
             SELECT A.page, A.user, B.lastmod, max(A.ack) AS ack
               FROM acks A, pages B
@@ -622,9 +590,34 @@ class helper_plugin_acknowledge extends Plugin
           ORDER BY ack DESC
              LIMIT ?
               ';
-        $acknowledgements = $sqlite->queryAll($sql, $limit);
+        return $this->db->queryAll($sql, $limit);
+    }
 
-        return $acknowledgements;
+    /**
+     * Returns a filter clause for acknowledgement queries depending on wanted status.
+     *
+     * @param string $status
+     * @param string $alias Table alias used in the SQL query
+     * @return string
+     */
+    protected function getFilterClause(string $status, string $alias): string
+    {
+        switch ($status) {
+            case 'current':
+                $filterClause = " HAVING ack >= $alias.lastmod ";
+                break;
+            case 'due':
+                $filterClause = " HAVING (ack IS NULL) OR (ack < $alias.lastmod) ";
+                break;
+            case 'outdated':
+                $filterClause = " HAVING ack < $alias.lastmod ";
+                break;
+            case 'all':
+            default:
+                $filterClause = '';
+                break;
+        }
+        return $filterClause;
     }
 
     // endregion

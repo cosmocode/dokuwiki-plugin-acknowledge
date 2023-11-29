@@ -1,6 +1,5 @@
 <?php
 
-
 namespace dokuwiki\plugin\acknowledge\test;
 
 use DokuWikiTest;
@@ -26,6 +25,7 @@ class HelperTest extends DokuWikiTest
         /** @var \auth_plugin_authplain $auth */
         global $auth;
         $auth->createUser('max', 'none', 'max', 'max@example.com', ['super']);
+        $auth->createUser('regular', 'none', 'regular', 'regular@example.com', ['user']);
     }
 
     public function setUp(): void
@@ -49,7 +49,8 @@ class HelperTest extends DokuWikiTest
 
         // outdated, current, outdated but replaced, current replacing outdated, outdated
         $acks = "REPLACE INTO acks(page,user,ack)
-            VALUES ('dokuwiki:acktest3', 'regular', 1550801270),
+            VALUES
+            ('dokuwiki:acktest3', 'regular', 1550801270),
             ('dokuwiki:acktest3', 'regular', 1560805555),
             ('dokuwiki:acktest1', 'max', 1550805770),
             ('dokuwiki:acktest1', 'max', 1560805770),
@@ -105,7 +106,7 @@ class HelperTest extends DokuWikiTest
     }
 
     /**
-     * test assignment query
+     * Test assignments for the given user
      */
     public function test_getUserAssignments()
     {
@@ -288,5 +289,37 @@ class HelperTest extends DokuWikiTest
         ];
         $this->assertEquals($expected, $actual);
 
+        $actual = $this->helper->getPageAcknowledgements('dokuwiki:acktest1', 'max');
+        $expected = [
+            [
+                'page' => 'dokuwiki:acktest1',
+                'lastmod' => '1560805365',
+                'user' => 'max',
+                'ack' => '1560805770',
+            ],
+        ];
+        $this->assertEquals($expected, $actual);
+
+        $actual = $this->helper->getPageAcknowledgements('dokuwiki:acktest2', '', 'due');
+        $expected = [
+            [
+                'page' => 'dokuwiki:acktest2',
+                'lastmod' => '1560805365',
+                'user' => 'max',
+                'ack' => null,
+            ],
+        ];
+        $this->assertEquals($expected, $actual);
+
+        $actual = $this->helper->getPageAcknowledgements('dokuwiki:acktest3', '', 'current');
+        $expected = [
+            [
+                'page' => 'dokuwiki:acktest3',
+                'lastmod' => '1560805365',
+                'user' => 'regular',
+                'ack' => '1560805555',
+            ],
+        ];
+        $this->assertEquals($expected, $actual);
     }
 }

@@ -33,10 +33,10 @@ class admin_plugin_acknowledge_report extends AdminPlugin
         $this->htmlForms();
         $user = $INPUT->str('user');
         $pg = $INPUT->str('pg');
-        if ($user) {
-            $this->htmlUserStatus($user);
-        } elseif ($pg) {
+        if ($pg) {
             $this->htmlPageStatus($pg, $user);
+        } elseif ($user) {
+            $this->htmlUserStatus($user);
         } else {
             $this->htmlLatest();
         }
@@ -52,15 +52,17 @@ class admin_plugin_acknowledge_report extends AdminPlugin
     protected function htmlPageStatus($pattern, $user = '')
     {
         global $lang;
+        global $INPUT;
 
         /** @var helper_plugin_acknowledge $helper */
         $helper = plugin_load('helper', 'acknowledge');
 
+        $status = $INPUT->str('status');
         $pages = $helper->getPagesMatchingPattern($pattern);
         $acknowledgements = [];
 
         foreach ($pages as $pattern) {
-            $acknowledgements = array_merge($acknowledgements, $helper->getPageAcknowledgements($pattern, 1000, $user));
+            $acknowledgements = array_merge($acknowledgements, $helper->getPageAcknowledgements($pattern, $user, $status, 1000));
             if (count($acknowledgements) > 1000) {
                 // don't show too many
                 msg($this->getLang('toomanyresults'), 0);
@@ -162,6 +164,7 @@ class admin_plugin_acknowledge_report extends AdminPlugin
     {
         echo '<table>';
         echo '<tr>';
+        echo '<th>#</th>';
         echo '<th>' . $this->getLang('overviewPage') . '</th>';
         echo '<th>' . $this->getLang('overviewUser') . '</th>';
         echo '<th>' . $this->getLang('overviewMod') . '</th>';
@@ -170,11 +173,13 @@ class admin_plugin_acknowledge_report extends AdminPlugin
         echo '</tr>';
 
         $count = 0;
+        $i = 0;
         foreach ($data as $item) {
             $current = $item['ack'] >= $item['lastmod'];
             if ($current) $count++;
-
+            $i++;
             echo '<tr>';
+            echo "<td>$i</td>";
             echo '<td>' . $this->pageLink($item['page']) . '</td>';
             echo '<td>' . $this->userLink($item['user']) . '</td>';
             echo '<td>' . html_wikilink(
