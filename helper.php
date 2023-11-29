@@ -565,7 +565,7 @@ class helper_plugin_acknowledge extends Plugin
         // this cannot be done in SQL without loss of data,
         // filtering must happen last, otherwise removed current acks will be re-added as due
         if ($status === 'due') {
-            $combined = array_filter($combined, function($info) {
+            $combined = array_filter($combined, function ($info) {
                 return $info['ack'] < $info['lastmod'];
             });
         }

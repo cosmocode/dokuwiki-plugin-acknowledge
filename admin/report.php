@@ -62,7 +62,10 @@ class admin_plugin_acknowledge_report extends AdminPlugin
         $acknowledgements = [];
 
         foreach ($pages as $pattern) {
-            $acknowledgements = array_merge($acknowledgements, $helper->getPageAcknowledgements($pattern, $user, $status, 1000));
+            $acknowledgements = array_merge(
+                $acknowledgements,
+                $helper->getPageAcknowledgements($pattern, $user, $status, 1000)
+            );
             if (count($acknowledgements) > 1000) {
                 // don't show too many
                 msg($this->getLang('toomanyresults'), 0);
