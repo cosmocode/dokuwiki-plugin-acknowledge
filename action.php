@@ -102,7 +102,7 @@ class action_plugin_acknowledge extends ActionPlugin
 
             if ($INPUT->has('pg')) {
                 $search = $INPUT->str('pg');
-                $pages = ft_pageLookup($search);
+                $pages = ft_pageLookup($search, true);
                 $found = array_map(function ($id, $title) {
                     return ['value' => $id, 'label' => $title ?? $id];
                 }, array_keys($pages), array_values($pages));
