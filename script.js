@@ -15,6 +15,16 @@ jQuery(function () {
                 },
                 minLength: 1
             });
+        $form.find('input[name="pg"]')
+            .autocomplete({
+                source: function (request, response) {
+                    jQuery.getJSON(DOKU_BASE + 'lib/exe/ajax.php?call=plugin_acknowledge_autocomplete', {
+                        pg: request.term,
+                        sectok: $form.find('input[name="sectok"]').val()
+                    }, response);
+                },
+                minLength: 3
+            });
     }
 
     const $form = jQuery('.dokuwiki.mode_admin div.plugin_acknowledgement_admin form#acknowledge__user-autocomplete');

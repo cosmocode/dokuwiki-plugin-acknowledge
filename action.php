@@ -90,12 +90,23 @@ class action_plugin_acknowledge extends ActionPlugin
             /** @var helper_plugin_acknowledge $hlp */
             $hlp = $this->loadHelper('acknowledge');
 
-            $knownUsers = $hlp->getUsers();
+            $found = [];
 
-            $search = $INPUT->str('user');
-            $found = array_filter($knownUsers, function ($user) use ($search) {
-                return (strstr(strtolower($user['label']), strtolower($search))) !== false ? $user : null;
-            });
+            if ($INPUT->has('user')) {
+                $search = $INPUT->str('user');
+                $knownUsers = $hlp->getUsers();
+                $found = array_filter($knownUsers, function ($user) use ($search) {
+                    return (strstr(strtolower($user['label']), strtolower($search))) !== false ? $user : null;
+                });
+            }
+
+            if ($INPUT->has('pg')) {
+                $search = $INPUT->str('pg');
+                $pages = ft_pageLookup($search);
+                $found = array_map(function ($id, $title) {
+                    return ['value' => $id, 'label' => $title ?? $id];
+                }, array_keys($pages), array_values($pages));
+            }
 
             header('Content-Type: application/json');
 
