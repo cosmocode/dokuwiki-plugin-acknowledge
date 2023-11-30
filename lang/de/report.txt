@@ -3,4 +3,5 @@
 Sie können folgende Seiten-Muster benutzen:
   * Seiten wie üblich mit ihrer Seiten-ID
   * Namensräume als ''<nowiki>namespace:*</nowiki>''
+  * Namensräume mit Unter-Namensräumen als ''<nowiki>namespace:**</nowiki>''
   * Reguläre Ausdrücke, die mit ''/'' beginnen und enden

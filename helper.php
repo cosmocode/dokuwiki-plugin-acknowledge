@@ -600,7 +600,7 @@ class helper_plugin_acknowledge extends Plugin
      * @param string $alias Table alias used in the SQL query
      * @return string
      */
-    protected function getFilterClause(string $status, string $alias): string
+    protected function getFilterClause($status, $alias)
     {
         switch ($status) {
             case 'current':
