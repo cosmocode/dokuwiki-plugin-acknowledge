@@ -510,6 +510,7 @@ class helper_plugin_acknowledge extends Plugin
     public function getPageAcknowledgements($page, $user = '', $status = '', $max = 0)
     {
         $userClause = '';
+        $filterClause = '';
         $params[] = $page;
 
         // filtering for user from input or using saved assignees?
@@ -522,13 +523,17 @@ class helper_plugin_acknowledge extends Plugin
             if (!$users) return [];
         }
 
+        if ($status === 'current') {
+            $filterClause = ' AND ACK >= A.lastmod ';
+        }
+
         $ulist = implode(',', array_map([$this->db->getPdo(), 'quote'], $users));
         $sql = "SELECT A.page, A.lastmod, B.user, MAX(B.ack) AS ack
                   FROM pages A
              LEFT JOIN acks B
                     ON A.page = B.page
                    AND B.user IN ($ulist)
-                WHERE  A.page = ? $userClause";
+                WHERE  A.page = ? $userClause $filterClause";
         $sql .= " GROUP BY A.page, B.user ";
         if ($max) $sql .= " LIMIT $max";
 
