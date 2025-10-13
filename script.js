@@ -36,7 +36,7 @@ jQuery(function () {
      * Handle assignments
      */
 
-    let $aContainer = jQuery('.plugin-acknowledge-assign');
+    let $aContainer = jQuery('.plugin-acknowledge-banner');
 
     // if no container is found, create one in the last section
     if ($aContainer.length === 0) {
