@@ -1,7 +1,7 @@
 base   acknowledge
 author Andreas Gohr, Anna Dabrowska
 email  dokuwiki@cosmocode.de
-date   2025-10-13
+date   2025-11-04
 name   acknowledge plugin
 desc   Let users acknowledge pages
 url    https://www.dokuwiki.org/plugin:acknowledge
