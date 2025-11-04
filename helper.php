@@ -183,9 +183,11 @@ class helper_plugin_acknowledge extends Plugin
         $revs = $changelog->getRevisions(0, 1);
 
         // compare content
-        $oldContent = str_replace(NL, '', io_readFile(wikiFN($page, $revs[0])));
-        $newContent = str_replace(NL, '', $newContent);
-        if ($oldContent === $newContent) return;
+        if (!empty($revs)) {
+            $oldContent = str_replace(NL, '', io_readFile(wikiFN($page, $revs[0])));
+            $newContent = str_replace(NL, '', $newContent);
+            if ($oldContent === $newContent) return;
+        }
 
         $sql = "REPLACE INTO pages (page, lastmod) VALUES (?,?)";
         $this->db->exec($sql, [$page, $lastmod]);
