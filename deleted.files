@@ -3,6 +3,4 @@
 .travis.yml
 action.php
 admin.php
-conf/default.php
-conf/metadata.php
 syntax.php
