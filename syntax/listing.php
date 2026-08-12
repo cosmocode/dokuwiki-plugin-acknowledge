@@ -79,6 +79,11 @@ class syntax_plugin_acknowledge_listing extends SyntaxPlugin
         $helper = plugin_load('helper', 'acknowledge');
         $items = $helper->getUserAssignments($user, $groups, $includeDone);
 
+        // if the approve plugin is active, skip draft pages
+        $items = array_filter($items ?: [], static function ($item) use ($helper) {
+            return !$helper->isBlockedByApprove($item['page']);
+        });
+
         $html =  $this->getLang('ackNotFound');
 
         if (!empty($items)) {
