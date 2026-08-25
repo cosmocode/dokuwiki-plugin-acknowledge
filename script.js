@@ -38,6 +38,10 @@ jQuery(function () {
 
     let $aContainer = jQuery('.plugin-acknowledge-banner');
 
+    // the revision currently viewed, 0 for the latest one
+    const ackRev = (JSINFO.plugins && JSINFO.plugins.acknowledge)
+        ? JSINFO.plugins.acknowledge.rev : 0;
+
     // if no container is found, create one in the last section
     if ($aContainer.length === 0) {
         const section = jQuery('.dokuwiki.mode_show')
@@ -79,6 +83,7 @@ jQuery(function () {
             {
                 call: "plugin_acknowledge_acknowledge",
                 id: JSINFO.id,
+                rev: ackRev,
                 ack: ack.checked === true ? 1 : 0
             }
         );
@@ -87,7 +92,8 @@ jQuery(function () {
         DOKU_BASE + 'lib/exe/ajax.php',
         {
             call: 'plugin_acknowledge_acknowledge',
-            id: JSINFO.id
+            id: JSINFO.id,
+            rev: ackRev
         },
         response => {
             // remove container if no data to show

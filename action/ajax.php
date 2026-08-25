@@ -20,6 +20,22 @@ class action_plugin_acknowledge_ajax extends ActionPlugin
         $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handleAjaxAcknowledge');
         $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handleAjaxAutocomplete');
         $controller->register_hook('AJAX_CALL_UNKNOWN', 'BEFORE', $this, 'handleAjaxUserList');
+        $controller->register_hook('DOKUWIKI_STARTED', 'AFTER', $this, 'handleJsInfo');
+    }
+
+    /**
+     * Make the currently viewed revision available to JavaScript
+     *
+     * @param Event $event
+     * @return void
+     */
+    public function handleJsInfo(Event $event)
+    {
+        global $JSINFO;
+        global $REV;
+
+        if (!isset($JSINFO['plugins'])) $JSINFO['plugins'] = [];
+        $JSINFO['plugins']['acknowledge']['rev'] = (int)$REV; // 0 means current
     }
 
     /**
@@ -109,7 +125,11 @@ class action_plugin_acknowledge_ajax extends ActionPlugin
 
         if (!$helper->getPageAssignees($id)) return;
 
-        echo $this->userListHtml($helper->getPageAcknowledgements($id, '', $status));
+        // no list without a revision in force
+        if (!$helper->getBindingRevision($id)) return;
+        $asOf = $helper->getAcknowledgementThreshold($id);
+
+        echo $this->userListHtml($helper->getPageAcknowledgements($id, '', $status, 0, $asOf));
     }
 
     /**
@@ -127,7 +147,11 @@ class action_plugin_acknowledge_ajax extends ActionPlugin
         /** @var helper_plugin_acknowledge $helper */
         $helper = plugin_load('helper', 'acknowledge');
 
-        return $this->bannerHtml($id, $user, $helper) . $this->reportHtml($id, $helper);
+        // neither box is displayed unless the revision on screen is the one in force
+        if (!$helper->isBindingRevision($id, $INPUT->int('rev'))) return '';
+
+        return $this->bannerHtml($id, $user, $helper)
+            . $this->reportHtml($id, $helper, $helper->getAcknowledgementThreshold($id));
     }
 
     /**
@@ -201,9 +225,10 @@ class action_plugin_acknowledge_ajax extends ActionPlugin
      *
      * @param string $id
      * @param helper_plugin_acknowledge $helper
+     * @param int|null $asOf timestamp to measure acknowledgements against, null for the page date
      * @return string
      */
-    protected function reportHtml($id, helper_plugin_acknowledge $helper)
+    protected function reportHtml($id, helper_plugin_acknowledge $helper, $asOf = null)
     {
         $mode = $this->getConf('onpage_report');
         if ($mode === 'off') return '';
@@ -222,7 +247,7 @@ class action_plugin_acknowledge_ajax extends ActionPlugin
         $html .= '<h3>' . $this->getLang('reportTitle') . '</h3>';
 
         // resolve group membership once, derive both counts arithmetically
-        $counts = $helper->getPageAcknowledgementCounts($id);
+        $counts = $helper->getPageAcknowledgementCounts($id, $asOf);
 
         if ($mode === 'acknowledged' || $mode === 'both') {
             $html .= '<p>' . $this->getLang('reportAcknowledgedTitle') . '</p>';

@@ -519,15 +519,26 @@ class helper_plugin_acknowledge extends Plugin
      *
      * @param string $page
      * @param string $user
-     * @param string $status
-     * @param int $max
+     * @param string $status filter, can be all (default), current or due
+     * @param int $max maximum number of results, 0 = no limit
+     * @param int|null $asOf alternative timestamp to check acknowledgements against
      *
      * @return array
      */
-    public function getPageAcknowledgements($page, $user = '', $status = '', $max = 0)
+    public function getPageAcknowledgements($page, $user = '', $status = '', $max = 0, $asOf = null)
     {
         $userClause = '';
         $filterClause = '';
+        $params = [];
+
+        // acknowledgements are usually checked against the stored page date
+        $lastmod = 'A.lastmod';
+        // special case with approve integration: use approved instead of latest
+        if ($asOf !== null) {
+            $lastmod = 'CAST(? AS INTEGER)'; // parameters are by default bound as strings
+            $params[] = (int)$asOf; // for the select clause
+        }
+
         $params[] = $page;
 
         // filtering for user from input or using saved assignees?
@@ -541,11 +552,12 @@ class helper_plugin_acknowledge extends Plugin
         }
 
         if ($status === 'current') {
-            $filterClause = ' AND ACK >= A.lastmod ';
+            $filterClause = " AND ACK >= $lastmod ";
+            if ($asOf !== null) $params[] = (int)$asOf;
         }
 
         $ulist = implode(',', array_map([$this->db->getPdo(), 'quote'], $users));
-        $sql = "SELECT A.page, A.lastmod, B.user, MAX(B.ack) AS ack
+        $sql = "SELECT A.page, $lastmod AS lastmod, B.user, MAX(B.ack) AS ack
                   FROM pages A
              LEFT JOIN acks B
                     ON A.page = B.page
@@ -602,13 +614,22 @@ class helper_plugin_acknowledge extends Plugin
      * Uses potentially slow getPageAssignees()
      *
      * @param string $page
+     * @param int|null $asOf alternative timestamp, null for latest stored
      * @return array{required:int, current:int, due:int}
      */
-    public function getPageAcknowledgementCounts($page)
+    public function getPageAcknowledgementCounts($page, $asOf = null)
     {
         $users = $this->getPageAssignees($page);
         if (!$users) {
             return ['required' => 0, 'current' => 0, 'due' => 0];
+        }
+
+        // acknowledgements are usually checked against the stored page date
+        $lastmod = 'A.lastmod';
+        $params = [$page];
+        if ($asOf !== null) {
+            $lastmod = 'CAST(? AS INTEGER)'; // parameters are by default bound as strings
+            $params[] = (int)$asOf;
         }
 
         $ulist = implode(',', array_map([$this->db->getPdo(), 'quote'], $users));
@@ -620,9 +641,9 @@ class helper_plugin_acknowledge extends Plugin
                        AND B.user IN ($ulist)
                      WHERE A.page = ?
                   GROUP BY B.user
-                    HAVING MAX(B.ack) >= A.lastmod
+                    HAVING MAX(B.ack) >= $lastmod
                 )";
-        $current = (int)$this->db->queryValue($sql, $page);
+        $current = (int)$this->db->queryValue($sql, $params);
 
         $required = count($users);
         return [
@@ -749,6 +770,40 @@ class helper_plugin_acknowledge extends Plugin
     // region Plugin Integrations
 
     /**
+     * Which revision acknowledgements refer to.
+     *
+     * This is the single place the approve integration is evaluated; everything the plugin needs
+     * to know about the revision in force is derived from the two timestamps returned here.
+     * Normally the current revision is the one in force. When the approve plugin maintains the
+     * page and its current revision is not yet approved, readers are served the last approved
+     * revision, so that one is in force instead - or none at all if the page was never approved.
+     *
+     * @param string $page page id
+     * @return array{current: int, binding: int, blocked: bool} timestamps of the current and the
+     *         binding revision, 'binding' 0 if nothing is in force;
+     *         'blocked' true while approve withholds the current revision
+     */
+    protected function resolveBinding($page)
+    {
+        // by default the current revision is the binding one
+        $current = (int)@filemtime(wikiFN($page));
+        $binding = $current;
+        $blocked = false;
+
+        /** @var helper_plugin_approve_db $approve */
+        $approve = $this->getConf('approve_integration') ? plugin_load('helper', 'approve_db') : null;
+        // only a page actually maintained by approve can have its current revision deferred
+        if ($approve && $approve->getPageMetadata($page) !== null) {
+            $blocked = ($approve->getPageRevision($page, $current)['status'] ?? null) !== 'approved';
+            if ($blocked) {
+                $binding = (int)$approve->getLastDbRev($page, 'approved');
+            }
+        }
+
+        return ['current' => $current, 'binding' => $binding, 'blocked' => $blocked];
+    }
+
+    /**
      * Check status of the approve plugin (if installed and integration enabled in config)
      *
      * @param string $page page id
@@ -756,20 +811,55 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function isBlockedByApprove($page)
     {
-        if (!$this->getConf('approve_integration')) return false;
+        return $this->resolveBinding($page)['blocked'];
+    }
 
-        /** @var helper_plugin_approve_db $approve */
-        $approve = plugin_load('helper', 'approve_db');
-        if (!$approve) return false;
+    /**
+     * The page revision that acknowledgements currently refer to,
+     * usually the current one.
+     *
+     * With approve integration, it is the last approved revision or 0 if only a draft exists.
+     *
+     * @param string $page page id
+     * @return int timestamp of the binding revision, 0 if none is found
+     */
+    public function getBindingRevision($page)
+    {
+        return $this->resolveBinding($page)['binding'];
+    }
 
-        // page not handled by approve
-        if ($approve->getPageMetadata($page) === null) return false;
+    /**
+     * Is the revision on screen the one acknowledgements refer to?
+     *
+     * @param string $page page id
+     * @param int $rev revision being viewed, 0 for the current one
+     * @return bool
+     */
+    public function isBindingRevision($page, $rev = 0)
+    {
+        $revisions = $this->resolveBinding($page);
+        if (!$revisions['binding']) return false;
 
-        // check if current revision is approved
-        $currentRev = (int)@filemtime(wikiFN($page));
-        $approveRev = $approve->getPageRevision($page, $currentRev);
+        // a missing revision means the current one
+        return ($rev ?: $revisions['current']) === $revisions['binding'];
+    }
 
-        return $approveRev['status'] !== 'approved';
+    /**
+     * The alternative timestamp acknowledgements have to be checked against.
+     *
+     * Call getBindingRevision() first to check if the current revision is in force, or if you should
+     * also call this function at all: for pages maintained by approve, the threshold is the last approved revision.
+     *
+     *
+     * @param string $page page id
+     * @return int|null threshold timestamp, null to use the stored page date
+     */
+    public function getAcknowledgementThreshold($page)
+    {
+        $revisions = $this->resolveBinding($page);
+        if (!$revisions['blocked']) return null;
+
+        return $revisions['binding'] ?: null;
     }
 
     // endregion
