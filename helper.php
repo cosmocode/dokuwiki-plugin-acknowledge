@@ -17,11 +17,9 @@ class helper_plugin_acknowledge extends Plugin
     protected $db;
 
     // region Database Management
-
     /**
      * Constructor
      *
-     * @return void
      * @throws Exception
      */
     public function __construct()
@@ -31,8 +29,8 @@ class helper_plugin_acknowledge extends Plugin
                 $this->db = new SQLiteDB('acknowledgement', __DIR__ . '/db');
 
                 // register our custom functions
-                $this->db->getPdo()->sqliteCreateFunction('AUTH_ISMEMBER', [$this, 'auth_isMember'], -1);
-                $this->db->getPdo()->sqliteCreateFunction('MATCHES_PAGE_PATTERN', [$this, 'matchPagePattern'], 2);
+                $this->db->getPdo()->sqliteCreateFunction('AUTH_ISMEMBER', $this->auth_isMember(...), -1);
+                $this->db->getPdo()->sqliteCreateFunction('MATCHES_PAGE_PATTERN', $this->matchPagePattern(...), 2);
             } catch (\Exception $exception) {
                 if (defined('DOKU_UNITTEST')) throw new \RuntimeException('Could not load SQLite', 0, $exception);
                 ErrorHandler::logException($exception);
@@ -111,12 +109,12 @@ class helper_plugin_acknowledge extends Plugin
         $pns = ':' . getNS($page) . ':';
 
         $ans = ':' . cleanID($pattern) . ':';
-        if (substr($pattern, -2) == '**') {
+        if (str_ends_with($pattern, '**')) {
             // upper namespaces match
-            if (strpos($pns, $ans) === 0) {
+            if (str_starts_with($pns, $ans)) {
                 return true;
             }
-        } elseif (substr($pattern, -1) == '*') {
+        } elseif (str_ends_with($pattern, '*')) {
             // namespaces match exact
             if ($ans === $pns) {
                 return true;
@@ -143,12 +141,10 @@ class helper_plugin_acknowledge extends Plugin
             return [];
         }
 
-        $cb = function ($k, $v) {
-            return [
-              'value' => $k,
-              'label' => $k  . ' (' . $v['name'] . ')'
-            ];
-        };
+        $cb = (fn($k, $v) => [
+          'value' => $k,
+          'label' => $k  . ' (' . $v['name'] . ')'
+        ]);
         $users = $auth->retrieveUsers();
         $users = array_map($cb, array_keys($users), array_values($users));
 
@@ -216,7 +212,7 @@ class helper_plugin_acknowledge extends Plugin
      */
     public function setPageAssignees($page, $assignees)
     {
-        $assignees = implode(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
+        $assignees = implode(',', array_unique(array_filter(array_map(trim(...), explode(',', $assignees)))));
 
         $sql = "REPLACE INTO assignments ('page', 'pageassignees') VALUES (?,?)";
         $this->db->exec($sql, [$page, $assignees]);
@@ -241,7 +237,7 @@ class helper_plugin_acknowledge extends Plugin
         }
 
         // remove duplicates and empty entries
-        $assignees = implode(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
+        $assignees = implode(',', array_unique(array_filter(array_map(trim(...), explode(',', $assignees)))));
 
         // store the assignees
         $sql = "REPLACE INTO assignments ('page', 'autoassignees') VALUES (?,?)";
@@ -386,7 +382,7 @@ class helper_plugin_acknowledge extends Plugin
                 DO UPDATE SET autoassignees = ?";
             foreach ($pages as $page => $assignees) {
                 // remove duplicates and empty entries
-                $assignees = implode(',', array_unique(array_filter(array_map('trim', explode(',', $assignees)))));
+                $assignees = implode(',', array_unique(array_filter(array_map(trim(...), explode(',', $assignees)))));
                 $this->db->exec($sql, [$page, $assignees, $assignees]);
             }
         } catch (Exception $e) {
@@ -599,9 +595,7 @@ class helper_plugin_acknowledge extends Plugin
         // this cannot be done in SQL without loss of data,
         // filtering must happen last, otherwise removed current acks will be re-added as due
         if ($status === 'due') {
-            $combined = array_filter($combined, function ($info) {
-                return $info['ack'] < $info['lastmod'];
-            });
+            $combined = array_filter($combined, fn($info) => $info['ack'] < $info['lastmod']);
         }
 
         ksort($combined);
@@ -748,21 +742,12 @@ class helper_plugin_acknowledge extends Plugin
      */
     protected function getFilterClause($status, $alias)
     {
-        switch ($status) {
-            case 'current':
-                $filterClause = " HAVING ack >= $alias.lastmod ";
-                break;
-            case 'due':
-                $filterClause = " HAVING (ack IS NULL) OR (ack < $alias.lastmod) ";
-                break;
-            case 'outdated':
-                $filterClause = " HAVING ack < $alias.lastmod ";
-                break;
-            case 'all':
-            default:
-                $filterClause = '';
-                break;
-        }
+        $filterClause = match ($status) {
+            'current' => " HAVING ack >= $alias.lastmod ",
+            'due' => " HAVING (ack IS NULL) OR (ack < $alias.lastmod) ",
+            'outdated' => " HAVING ack < $alias.lastmod ",
+            default => '',
+        };
         return $filterClause;
     }
 

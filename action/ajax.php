@@ -79,17 +79,13 @@ class action_plugin_acknowledge_ajax extends ActionPlugin
             if ($INPUT->has('user')) {
                 $search = $INPUT->str('user');
                 $knownUsers = $hlp->getUsers();
-                $found = array_filter($knownUsers, function ($user) use ($search) {
-                    return (strstr(strtolower($user['label']), strtolower($search))) !== false ? $user : null;
-                });
+                $found = array_filter($knownUsers, fn($user) => str_contains(strtolower($user['label']), strtolower($search)) ? $user : null);
             }
 
             if ($INPUT->has('pg')) {
                 $search = $INPUT->str('pg');
                 $pages = ft_pageLookup($search, true);
-                $found = array_map(function ($id, $title) {
-                    return ['value' => $id, 'label' => $title ?? $id];
-                }, array_keys($pages), array_values($pages));
+                $found = array_map(fn($id, $title) => ['value' => $id, 'label' => $title ?? $id], array_keys($pages), array_values($pages));
             }
 
             header('Content-Type: application/json');
