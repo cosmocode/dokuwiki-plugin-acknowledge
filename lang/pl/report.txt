@@ -1,0 +1,8 @@
+====== Najnowsze zapoznania ======
+
+Możesz użyć następujących wzorców stron:
+
+  * Strony standardowo za pomocą ich pełnego ID strony
+  * Przestrzenie nazw jako ''<nowiki>namespace:*</nowiki>''
+  * Przestrzenie nazw wraz z podprzestrzeniami jako ''<nowiki>namespace:**</nowiki>''
+  * Wyrażenia regularne rozpoczynające się i kończące znakiem ''/''

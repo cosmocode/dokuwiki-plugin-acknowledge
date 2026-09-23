@@ -1,0 +1,11 @@
+====== Przypisywanie obowiązku zapoznania ======
+
+Tutaj możesz zdefiniować wzorce, aby automatycznie przypisywać osoby i grupy do zapoznania się z określonymi stronami.
+Za każdym razem, gdy strona pasuje do jednego z podanych wzorców, obowiązek ten zostanie przypisany wskazanym osobom i grupom.
+
+  * Przestrzenie nazw z wyłączeniem podprzestrzeni są przypisywane jako ''<nowiki>namespace:*</nowiki>''.
+  * Przestrzenie nazw wraz z podprzestrzeniami są przypisywane jako ''<nowiki>namespace:**</nowiki>''.
+  * Strony standardowo za pomocą pełnego ID strony.
+  * Wyrażenia regularne rozpoczynające się i kończące znakiem ''/'' – są dopasowywane do pełnego ID strony poprzedzonego znakiem '':''.
+
+Osoby przypisane definiuje się za pomocą nazwy użytkownika lub nazwy grupy poprzedzonej znakiem ''@''. Wielu przypisanych użytkowników rozdziela się przecinkami '',''.
