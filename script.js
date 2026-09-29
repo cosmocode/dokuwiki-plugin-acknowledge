@@ -46,6 +46,10 @@ jQuery(function () {
     const ackRev = (JSINFO.plugins && JSINFO.plugins.acknowledge)
         ? JSINFO.plugins.acknowledge.rev : 0;
 
+    // security token sent with every call, the handlers in action/ajax.php reject calls without it
+    const ackSectok = (JSINFO.plugins && JSINFO.plugins.acknowledge)
+        ? JSINFO.plugins.acknowledge.sectok : '';
+
     // on-page report: load the full user list when a count is clicked
     $aContainer.on('click', 'a.plugin-acknowledge-loadusers', function (event) {
         event.preventDefault();
@@ -57,7 +61,8 @@ jQuery(function () {
             {
                 call: 'plugin_acknowledge_userlist',
                 id: $link.data('id'),
-                status: $link.data('status')
+                status: $link.data('status'),
+                sectok: ackSectok
             }
         );
     });
@@ -73,7 +78,8 @@ jQuery(function () {
                 call: "plugin_acknowledge_acknowledge",
                 id: JSINFO.id,
                 rev: ackRev,
-                ack: ack.checked === true ? 1 : 0
+                ack: ack.checked === true ? 1 : 0,
+                sectok: ackSectok
             }
         );
     });
@@ -82,7 +88,8 @@ jQuery(function () {
         {
             call: 'plugin_acknowledge_acknowledge',
             id: JSINFO.id,
-            rev: ackRev
+            rev: ackRev,
+            sectok: ackSectok
         },
         response => {
             // remove container if no data to show
