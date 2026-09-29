@@ -33,29 +33,18 @@ jQuery(function () {
     }
 
     /*
-     * Handle assignments
+     * Handle assignments banner
      */
 
-    let $aContainer = jQuery('.plugin-acknowledge-banner');
+    // the container comes from the ~~ACK:...~~ syntax or from action/banner.php
+    const $aContainer = jQuery('.plugin-acknowledge-banner').first();
+    if ($aContainer.length === 0) {
+        return;
+    }
 
     // the revision currently viewed, 0 for the latest one
     const ackRev = (JSINFO.plugins && JSINFO.plugins.acknowledge)
         ? JSINFO.plugins.acknowledge.rev : 0;
-
-    // if no container is found, create one in the last section
-    if ($aContainer.length === 0) {
-        const section = jQuery('.dokuwiki.mode_show')
-            .find('div.level1, div.level2, div.level3, div.level4, div.level5')
-            .filter(function (idx, el) {
-                return jQuery(el).parents('ul, ol, aside, nav, footer, header').length === 0;
-            })
-            .last();
-        if (section.length === 0) {
-            return;
-        }
-        $aContainer = jQuery('<div class="plugin-acknowledge-banner"></div>');
-        section.append($aContainer);
-    }
 
     // on-page report: load the full user list when a count is clicked
     $aContainer.on('click', 'a.plugin-acknowledge-loadusers', function (event) {
