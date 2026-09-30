@@ -1,5 +1,6 @@
 <?php
 
+use dokuwiki\Parsing\Handler;
 use dokuwiki\Extension\SyntaxPlugin;
 
 /**
@@ -35,7 +36,7 @@ class syntax_plugin_acknowledge_listing extends SyntaxPlugin
     }
 
     /** @inheritDoc */
-    public function handle($match, $state, $pos, Doku_Handler $handler)
+    public function handle($match, $state, $pos, Handler $handler)
     {
         // check for 'all' parameter
         $includeDone = strtolower(substr($match, strlen('~~ACKNOWLEDGE '), -2)) === 'all';
@@ -80,13 +81,11 @@ class syntax_plugin_acknowledge_listing extends SyntaxPlugin
         $items = $helper->getUserAssignments($user, $groups, $includeDone);
 
         // if the approve plugin is active, skip draft pages
-        $items = array_filter($items ?: [], static function ($item) use ($helper) {
-            return !$helper->isBlockedByApprove($item['page']);
-        });
+        $items = array_filter($items ?: [], static fn($item) => !$helper->isBlockedByApprove($item['page']));
 
         $html =  $this->getLang('ackNotFound');
 
-        if (!empty($items)) {
+        if ($items !== []) {
             $html = '<ul>';
             foreach ($items as $item) {
                 $done = $item['ack'] ?

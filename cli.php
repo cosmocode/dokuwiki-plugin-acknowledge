@@ -205,7 +205,7 @@ class cli_plugin_acknowledge extends CLIPlugin
                     $assignees = $patterns[$newPattern] . ',' . $assignees;
                 }
                 // clean up combined assignees
-                $entries = array_map('trim', explode(',', $assignees));
+                $entries = array_map(trim(...), explode(',', $assignees));
                 $entries = array_filter($entries);
                 $patterns[$newPattern] = implode(',', array_unique($entries));
             }
