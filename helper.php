@@ -266,6 +266,19 @@ class helper_plugin_acknowledge extends Plugin
     }
 
     /**
+     * Does the given page have any assignees at all
+     *
+     * @param string $page Page ID
+     * @return bool
+     */
+    public function hasPageAssignees($page)
+    {
+        $sql = "SELECT pageassignees || ',' || autoassignees FROM assignments WHERE page = ?";
+        $assignees = (string)$this->db->queryValue($sql, $page);
+        return trim($assignees, ', ') !== '';
+    }
+
+    /**
      * Fetch all assignments for a given user, with additional page information,
      * by default filtering already granted acknowledgements.
      * Filter can be switched off via $includeDone

@@ -36,6 +36,7 @@ class action_plugin_acknowledge_ajax extends ActionPlugin
 
         if (!isset($JSINFO['plugins'])) $JSINFO['plugins'] = [];
         $JSINFO['plugins']['acknowledge']['rev'] = (int)$REV; // 0 means current
+        $JSINFO['plugins']['acknowledge']['sectok'] = getSecurityToken();
     }
 
     /**
@@ -47,6 +48,8 @@ class action_plugin_acknowledge_ajax extends ActionPlugin
         if ($event->data === 'plugin_acknowledge_acknowledge') {
             $event->stopPropagation();
             $event->preventDefault();
+
+            if (!checkSecurityToken()) return;
 
             global $INPUT;
             $id = $INPUT->str('id');
@@ -64,12 +67,12 @@ class action_plugin_acknowledge_ajax extends ActionPlugin
     public function handleAjaxAutocomplete(Event $event)
     {
         if ($event->data === 'plugin_acknowledge_autocomplete') {
+            $event->stopPropagation();
+            $event->preventDefault();
+
             if (!checkSecurityToken()) return;
 
             global $INPUT;
-
-            $event->stopPropagation();
-            $event->preventDefault();
 
             /** @var helper_plugin_acknowledge $hlp */
             $hlp = $this->loadHelper('acknowledge');
@@ -111,6 +114,7 @@ class action_plugin_acknowledge_ajax extends ActionPlugin
         $event->stopPropagation();
         $event->preventDefault();
 
+        if (!checkSecurityToken()) return;
         if (!auth_ismanager()) return;
 
         global $INPUT;
