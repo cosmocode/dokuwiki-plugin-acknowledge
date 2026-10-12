@@ -183,7 +183,7 @@ class admin_plugin_acknowledge_report extends AdminPlugin
             $i++;
             echo '<tr>';
             echo "<td>$i</td>";
-            echo '<td>' . $this->pageLink($item['page']) . '</td>';
+            echo '<td>' . $this->pageLink($item['page']) . ' ' . $this->pageViewLink($item['page']) . '</td>';
             echo '<td>' . $this->userLink($item['user']) . '</td>';
             echo '<td>' . html_wikilink(
                 ':' . $item['page'],
@@ -255,6 +255,21 @@ class admin_plugin_acknowledge_report extends AdminPlugin
         );
 
         return '<a href="' . $url . '">' . hsc($page) . '</a>';
+    }
+
+    /**
+     * Icon link opening the page itself, next to the page filter link
+     *
+     * @param string $page
+     * @return string
+     */
+    protected function pageViewLink($page)
+    {
+        $title = hsc($this->getLang('overviewOpenPage'));
+        $icon = inlineSVG(__DIR__ . '/../images/open-in-new.svg');
+
+        return '<a href="' . wl($page) . '" class="plugin__acknowledge-openpage" target="_blank"'
+            . ' title="' . $title . '" aria-label="' . $title . '">' . $icon . '</a>';
     }
 
     /** @inheritdoc */

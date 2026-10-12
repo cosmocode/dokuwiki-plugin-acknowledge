@@ -25,6 +25,7 @@ $lang['reportNobody'] = '(brak)';
 $lang['reportUserCount'] = '%d użytkowników (pokaż)';
 $lang['reportAckedOn'] = 'dnia';
 $lang['overviewPage'] = 'Strona';
+$lang['overviewOpenPage'] = 'Otwórz stronę';
 $lang['overviewUser'] = 'Użytkownik';
 $lang['overviewTime'] = 'Ostatnie zapoznanie się';
 $lang['overviewMod'] = 'Ostatnia zmiana';
