@@ -32,7 +32,7 @@ class action_plugin_acknowledge_banner extends ActionPlugin
         if ($ACT !== 'show') return;
 
         // check if the ~~ACK:...~~ syntax has already rendered the container
-        if (strpos($event->data, 'plugin-acknowledge-banner') !== false) return;
+        if (str_contains($event->data, 'plugin-acknowledge-banner')) return;
 
         /** @var helper_plugin_acknowledge $helper */
         $helper = plugin_load('helper', 'acknowledge');

@@ -1,5 +1,6 @@
 <?php
 
+use dokuwiki\Parsing\Handler;
 use dokuwiki\Extension\SyntaxPlugin;
 
 /**
@@ -36,7 +37,7 @@ class syntax_plugin_acknowledge_assign extends SyntaxPlugin
 
 
     /** @inheritDoc */
-    public function handle($match, $state, $pos, Doku_Handler $handler)
+    public function handle($match, $state, $pos, Handler $handler)
     {
         $match = substr($match, 6, -2);
         return ['assignees' => $match];
