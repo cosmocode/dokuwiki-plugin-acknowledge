@@ -183,6 +183,7 @@ class action_plugin_acknowledge_ajax extends ActionPlugin
 
         if ($INPUT->bool('ack')) {
             $helper->saveAcknowledgement($id, $user);
+            $helper->sendAcknowledgementMail($id, $user);
         }
 
         $ack = $helper->hasUserAcknowledged($id, $user);

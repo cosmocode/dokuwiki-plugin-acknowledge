@@ -10,3 +10,6 @@
 $conf['approve_integration'] = 1;
 $conf['notification_integration'] = 1;
 $conf['onpage_report'] = 'off';
+$conf['mail_user'] = 1;
+$conf['mail_address'] = '';
+$conf['mail_content'] = 'none';

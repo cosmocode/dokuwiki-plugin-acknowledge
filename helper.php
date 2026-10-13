@@ -481,6 +481,109 @@ class helper_plugin_acknowledge extends Plugin
     }
 
     /**
+     * Build subject, plain text and HTML body for an acknowledgement email.
+     *
+     * Split out from sendAcknowledgementMail() so the generated content can be tested
+     * directly, without having to intercept the Mailer class to avoid actually sending mail.
+     *
+     * @param string $page
+     * @param string $user
+     * @return array{subject: string, text: string, html: string}
+     */
+    protected function buildAcknowledgementMail($page, $user)
+    {
+        // the acknowledging user is always the current session's user, so use the
+        // already resolved session data instead of re-querying the auth backend -
+        // this is exactly the name shown to the user in the wiki's own interface
+        global $USERINFO;
+        $displayName = $USERINFO['name'] ?? $user;
+
+        if (useHeading('content')) {
+            $heading = p_get_first_heading($page);
+            $title = blank($heading) ? noNSorNS($page) : $heading;
+        } else {
+            $title = noNSorNS($page);
+        }
+
+        // link to the exact acknowledged revision via 'at', not 'rev': 'rev' requires an
+        // already-archived attic file, which only exists once a later edit supersedes it.
+        // 'at' resolves to the current page until that happens, and to the correct archived
+        // revision afterwards - so the link stays correct at any point in time
+        $pageLink = wl($page, ['at' => $this->getBindingRevision($page)], true);
+
+        $subject = sprintf($this->getLang('mailSubject'), $displayName, $title);
+        $text = sprintf($this->getLang('mailBody'), $displayName, $title, dformat(), $pageLink);
+
+        // build the HTML part ourselves instead of letting Mailer auto-generate it from
+        // $text, so the link is a real <a> tag - some mail clients don't autolink plain URLs
+        $html = sprintf(
+            $this->getLang('mailBody'),
+            hsc($displayName),
+            hsc($title),
+            hsc(dformat()),
+            // wl() already returns its default '&amp;'-separated URL HTML-escaped (same as
+            // the plain wl() calls used elsewhere in this plugin) - hsc() would double-escape it
+            '<a href="' . $pageLink . '">' . $pageLink . '</a>'
+        );
+        $html = nl2br($html);
+
+        switch ($this->getConf('mail_content')) {
+            case 'source':
+                $text .= "\n\n----\n\n" . rawWiki($page);
+                $html .= '<hr />' . nl2br(hsc(rawWiki($page)));
+                break;
+            case 'render':
+                $html .= '<hr />' . p_wiki_xhtml($page, '', false);
+                break;
+            // 'none' (and any unexpected value) intentionally falls through with no extra content
+        }
+
+        return ['subject' => $subject, 'text' => $text, 'html' => $html];
+    }
+
+    /**
+     * Email the acknowledging user and/or the configured central address
+     * about a just-granted acknowledgement.
+     *
+     * @param string $page
+     * @param string $user
+     * @return void
+     */
+    public function sendAcknowledgementMail($page, $user)
+    {
+        $notifyUser = $this->getConf('mail_user');
+        $central = trim($this->getConf('mail_address'));
+        if (!$notifyUser && $central === '') return;
+
+        // mail_address is notified independently of mail_user - it acts as a central
+        // audit log of acknowledgements, not merely a copy of the user's mail
+        global $USERINFO;
+        $recipients = [];
+        if ($notifyUser && !empty($USERINFO['mail'])) {
+            $recipients[] = $USERINFO['mail'];
+        }
+        if ($central !== '') {
+            foreach (explode(',', $central) as $address) {
+                $address = trim($address);
+                if ($address !== '') $recipients[] = $address;
+            }
+        }
+        $recipients = array_unique($recipients);
+        if (!$recipients) return;
+
+        $content = $this->buildAcknowledgementMail($page, $user);
+
+        // send individually so recipients don't see each other's addresses
+        foreach ($recipients as $recipient) {
+            $mail = new Mailer();
+            $mail->to($recipient);
+            $mail->subject($content['subject']);
+            $mail->setBody($content['text'], null, null, $content['html']);
+            $mail->send();
+        }
+    }
+
+    /**
      * Save an acknowledgement with an explicit timestamp.
      * Useful for imports and tests. Ignores duplicates.
      *

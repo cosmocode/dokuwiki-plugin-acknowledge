@@ -10,3 +10,6 @@
 $meta['approve_integration'] = ['onoff'];
 $meta['notification_integration'] = ['onoff'];
 $meta['onpage_report'] = ['multichoice', '_choices' => ['off', 'acknowledged', 'pending', 'both']];
+$meta['mail_user'] = ['onoff'];
+$meta['mail_address'] = ['string'];
+$meta['mail_content'] = ['multichoice', '_choices' => ['none', 'source', 'render']];

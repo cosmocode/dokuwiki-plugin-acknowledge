@@ -59,3 +59,6 @@ $lang['save'] = 'Save';
 $lang['error sqlite plugin missing'] = 'The sqlite plugin is missing';
 
 $lang['notification'] = 'You are required to acknowledge that you have read this page: %s';
+
+$lang['mailSubject'] = 'Page acknowledged by %s: %s';
+$lang['mailBody'] = "%s has acknowledged the page \"%s\" on %s.\n\n%s";

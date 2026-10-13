@@ -14,6 +14,7 @@ $lang['menu_stats'] = 'Bestätigungen: Statistik';
 $lang['ackRequired'] = 'Sie müssen diese Seite noch bestätigen';
 $lang['ackText'] = 'Ich bestätige den Inhalt dieser Seite gelesen und verstanden zu haben';
 $lang['ackButton'] = 'Bestätigen';
+$lang['ackOk'] = 'Seite bestätigt';
 $lang['ackGranted'] = 'Sie haben diese Seite am %s bestätigt.';
 $lang['ackDiff'] = 'Zeige Unterschiede zur letzten bestätigten Revision von %s';
 $lang['ackNotFound'] = 'Nichts gefunden';
@@ -57,3 +58,6 @@ $lang['save'] = 'Speichern';
 $lang['error sqlite plugin missing'] = 'Das sqlite plugin ist nicht installiert';
 
 $lang['notification'] = 'Sie müssen bestätigen, dass Sie die folgende Seite gelesen haben: %s';
+
+$lang['mailSubject'] = 'Seite bestätigt von %s: %s';
+$lang['mailBody'] = "%s hat die Seite \"%s\" am %s bestätigt.\n\n%s";
